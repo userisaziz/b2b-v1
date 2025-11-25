@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  /* LIGHT MODE - Saudi Enterprise Theme */
+  :root {
+    /* Base colors - Clean Enterprise */
+    --background: 210 40% 98%;
+    /* Very subtle cool gray/blue tint #f8fafc */
+    --foreground: 222 47% 11%;
+    /* Deep dark blue-gray for text #0f172a */
+
+    /* Cards - White with subtle depth */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --card-border: 214 32% 91%;
+
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary - Deep Teal/Emerald (Trust, Growth, Saudi) */
+    --primary: 175 84% 32%;
+    /* #0d9488 equivalent tweaked to be deeper */
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary - Sand/Gold (Premium accent) */
+    --secondary: 35 70% 90%;
+    /* Light gold background */
+    --secondary-foreground: 35 80% 30%;
+    /* Dark gold text */
+
+    /* Muted - For backgrounds and secondary text */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent - For hover states and highlights */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    /* Destructive - Error states */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders and Inputs */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 175 84% 32%;
+    /* Matches primary */
+
+    /* Sidebar - Dark Professional Mode */
+    --sidebar: 222 47% 11%;
+    /* #0f172a */
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 175 84% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 175 84% 32%;
+
+    /* Charts - Professional Palette */
+    --chart-1: 175 84% 32%;
+    /* Primary Teal */
+    --chart-2: 35 90% 45%;
+    /* Gold */
+    --chart-3: 215 25% 27%;
+    /* Dark Blue/Gray */
+    --chart-4: 15 75% 55%;
+    /* Burnt Orange */
+    --chart-5: 200 80% 45%;
+    /* Ocean Blue */
+
+    --radius: 0.5rem;
+
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Cairo', sans-serif;
+    /* For headers if needed */
+  }
+
+  .dark {
+    /* Dark Mode - Deep & Sleek */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --card-border: 217.2 32.6% 17.5%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 175 70% 45%;
+    /* Lighter teal for dark mode */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 175 70% 45%;
+
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 175 70% 45%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 175 70% 45%;
+  }
+
+  @layer base {
+    * {
+      @apply border-border;
+    }
+
+    body {
+      @apply font-sans antialiased bg-background text-foreground;
+    }
+
+    /* Use Cairo for headers to give it that regional touch */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: var(--font-display), var(--font-sans);
+    }
+  }
+}

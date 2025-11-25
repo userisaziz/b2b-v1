@@ -1,0 +1,90 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production builds
+dist/
+build/
+.out/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backend specific
+.env*
+!.env.example
+coverage/
+*.pid
+*.pid.lock
+*.seed
+*.seed*
+
+# Frontend specific
+# parcel
+.cache/
+
+# next.js
+.next/
+out/
+
+# nuxt.js
+.nuxt/
+
+# vuepress
+.vuepress/dist/
+
+# vite
+.vite/
+dist/
+
+# temporary files
+tmp/
+temp/
+
+# Database
+*.db
+*.db.*
+.dbshell
+
+# Testing
+coverage/
+*.lcov
+
+# Typescript
+*.tsbuildinfo
+
+# Vite
+.vite/
