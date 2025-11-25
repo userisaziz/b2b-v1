@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "public": false,
+  "github": {
+    "enabled": false
+  },
+  "builds": [
+    {
+      "src": "admin-panel/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["admin-panel/**"]
+      }
+    },
+    {
+      "src": "seller-panel/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["seller-panel/**"]
+      }
+    },
+    {
+      "src": "store-front/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["store-front/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/admin/(.*)",
+      "dest": "admin-panel/$1"
+    },
+    {
+      "src": "/seller/(.*)",
+      "dest": "seller-panel/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "store-front/$1"
+    }
+  ]
+}
