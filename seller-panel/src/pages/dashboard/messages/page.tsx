@@ -9,18 +9,18 @@ import { getCurrentSeller } from "@/services/auth.service";
 export default function MessagesPage() {
   const [inbox, setInbox] = useState<Message[]>([]);
   const [sent, setSent] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [showCompose, setShowCompose] = useState(false);
   const [newMessage, setNewMessage] = useState({
     recipient_id: "",
     subject: "",
     message: "",
-    message_type: "general",
+    message_type: "general" as "general" | "rfq_response" | "order_update",
     recipient_type: "Buyer" as "Buyer" | "Seller"
   });
-  const [showCompose, setShowCompose] = useState(false);
   const [seller, setSeller] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Load messages

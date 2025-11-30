@@ -22,14 +22,14 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
       socket.connect();
       socket.emit("join_room", user.id);
 
-      socket.on("new_message", (data) => {
+      socket.on("new_message", (data: any) => {
         // Ideally we would update a global state or trigger a toast here
         // For now, the unread count hook should handle polling or we can add real-time increment logic later
         console.log("New message received:", data);
       });
 
       // Listen for general notifications
-      socket.on("notification", (data) => {
+      socket.on("notification", (data: any) => {
         console.log("Notification received:", data);
         if (data.type === "success") {
           toast.success(data.title, {

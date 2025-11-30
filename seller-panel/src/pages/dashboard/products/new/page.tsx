@@ -218,7 +218,6 @@ const productValidationSchema = Yup.object({
 
 export default function AddProductPage() {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<any[]>([]);
   const [flatCategories, setFlatCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);

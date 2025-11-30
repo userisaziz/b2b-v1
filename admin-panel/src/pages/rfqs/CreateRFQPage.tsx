@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Package, Tag, User, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Calendar } from "lucide-react";
 import {
   Card,
   CardContent,

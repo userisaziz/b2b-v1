@@ -34,9 +34,9 @@ export default function RFQList() {
       case 'closed':
         return <Badge variant="secondary">Closed</Badge>;
       case 'expired':
-        return <Badge variant="destructive">Expired</Badge>;
+        return <Badge variant="danger">Expired</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 

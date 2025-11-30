@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
 import { getCurrentSeller } from "../../services/auth.service";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
