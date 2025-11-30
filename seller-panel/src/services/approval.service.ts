@@ -125,10 +125,21 @@ export const createCategoryRequest = async (data: {
 export const getCategoryRequests = async (params?: {
   status?: string;
 }) => {
-  const queryParams = new URLSearchParams(params as any).toString();
-  const url = `/category-requests/seller${queryParams ? `?${queryParams}` : ''}`;
-  const response = await api.get(url);
-  return response.data;
+  try {
+    const queryParams = new URLSearchParams(params as any).toString();
+    const url = `/category-requests/seller${queryParams ? `?${queryParams}` : ''}`;
+    console.log(`[Seller Panel] Calling API: GET ${url}`);
+    const response = await api.get(url);
+    console.log(`[Seller Panel] Response from ${url}:`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`[Seller Panel] Error in getCategoryRequests:`, error);
+    if (error.response) {
+      console.error("[Seller Panel] Response data:", error.response.data);
+      console.error("[Seller Panel] Response status:", error.response.status);
+    }
+    throw error;
+  }
 };
 
 // Keep the old functions for backward compatibility (but they should be updated to use the new endpoint)

@@ -41,9 +41,13 @@ function LoginForm() {
 
       // Redirect based on user role
       if (response.user.role === 'admin') {
-        window.location.href = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001/admin-dashboard/home';
+        // For admin, redirect to admin panel (assuming it's a separate app)
+        const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:5173';
+        window.location.href = adminUrl;
       } else if (response.user.role === 'seller') {
-        window.location.href = process.env.NEXT_PUBLIC_SELLER_URL || 'http://localhost:3001/seller-dashboard/home';
+        // For seller, redirect to seller panel
+        const sellerUrl = process.env.NEXT_PUBLIC_SELLER_URL || 'http://localhost:5175';
+        window.location.href = sellerUrl;
       } else {
         router.push(redirect);
       }

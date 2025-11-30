@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Public RFQ</title>
+</head>
+<body>
+    <h1>Test Public RFQ Endpoint</h1>
+    <button onclick="testRFQ()">Test RFQ Creation</button>
+    <div id="result"></div>
+
+    <script>
+        async function testRFQ() {
+            try {
+                const response = await fetch('http://localhost:5000/api/rfqs/public', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: 'Test RFQ',
+                        description: 'This is a test RFQ',
+                        category_id: '6923677f3b274a21694261cf',
+                        contact_name: 'John Doe',
+                        contact_email: 'john@example.com',
+                        contact_phone: '1234567890'
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p>Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

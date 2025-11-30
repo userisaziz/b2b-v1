@@ -1,0 +1,232 @@
+import apiClient from '@/lib/api';
+
+// Category interfaces
+export interface CategoryAncestor {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface Category {
+  _id: string;
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  parentId?: string;
+  parent_id?: string;
+  level: number;
+  path: string;
+  ancestors?: CategoryAncestor[];
+  isActive: boolean;
+  displayOrder: number;
+  productCount?: number;
+  childrenCount?: number;
+  imageUrl?: string;
+  metadata?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+  };
+  children?: Category[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Breadcrumb {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CategoryTree {
+  rootCategories: Category[];
+  categoryMap: Record<string, Category>;
+}
+
+// Get all categories with hierarchical structure
+export const getAllCategories = async (): Promise<CategoryTree> => {
+  try {
+    const response = await apiClient.get('/categories');
+    const categories: Category[] = response.data;
+    
+    // Build hierarchical structure
+    const categoryMap: Record<string, Category> = {};
+    const rootCategories: Category[] = [];
+    
+    // Create a map of all categories by their ID
+    categories.forEach(category => {
+      categoryMap[category._id] = {
+        ...category,
+        id: category._id,
+        children: []
+      };
+    });
+    
+    // Build the tree structure
+    categories.forEach(category => {
+      const cat = categoryMap[category._id];
+      if (category.parentId) {
+        const parent = categoryMap[category.parentId];
+        if (parent) {
+          parent.children = parent.children || [];
+          parent.children.push(cat);
+        } else {
+          // Parent not found, treat as root
+          rootCategories.push(cat);
+        }
+      } else {
+        // Root category
+        rootCategories.push(cat);
+      }
+    });
+    
+    return {
+      rootCategories,
+      categoryMap
+    };
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while fetching categories' };
+  }
+};
+
+// Get category by ID with full details
+export const getCategoryById = async (id: string): Promise<Category> => {
+  try {
+    const response = await apiClient.get(`/categories/${id}`);
+    const category = response.data;
+    
+    // Ensure consistent ID field
+    return {
+      ...category,
+      id: category._id
+    };
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while fetching the category' };
+  }
+};
+
+// Get category by slug
+export const getCategoryBySlug = async (slug: string): Promise<Category> => {
+  try {
+    // First get all categories to find the one with matching slug
+    const allCategories = await getAllCategories();
+    
+    // Find category by slug
+    const category = Object.values(allCategories.categoryMap).find(cat => cat.slug === slug);
+    
+    if (!category) {
+      throw new Error('Category not found');
+    }
+    
+    // Get full details for the category
+    return await getCategoryById(category.id);
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while fetching the category' };
+  }
+};
+
+// Search categories by name
+export const searchCategories = async (searchTerm: string): Promise<Category[]> => {
+  try {
+    const allCategories = await getAllCategories();
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    return Object.values(allCategories.categoryMap).filter(category => 
+      category.name.toLowerCase().includes(searchTermLower) ||
+      (category.description && category.description.toLowerCase().includes(searchTermLower))
+    );
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while searching categories' };
+  }
+};
+
+// Get breadcrumbs for a category
+export const getCategoryBreadcrumbs = (category: Category, categoryMap: Record<string, Category>): Breadcrumb[] => {
+  const breadcrumbs: Breadcrumb[] = [];
+  
+  // Add ancestors in reverse order (from root to parent)
+  if (category.ancestors) {
+    category.ancestors.forEach(ancestor => {
+      breadcrumbs.push({
+        id: ancestor.id,
+        name: ancestor.name,
+        slug: ancestor.slug
+      });
+    });
+  }
+  
+  // Add current category
+  breadcrumbs.push({
+    id: category.id,
+    name: category.name,
+    slug: category.slug
+  });
+  
+  return breadcrumbs;
+};
+
+// Get all descendants of a category
+export const getCategoryDescendants = (categoryId: string, categoryMap: Record<string, Category>): Category[] => {
+  const descendants: Category[] = [];
+  
+  const findDescendants = (id: string) => {
+    Object.values(categoryMap).forEach(category => {
+      if (category.parentId === id) {
+        descendants.push(category);
+        findDescendants(category.id);
+      }
+    });
+  };
+  
+  findDescendants(categoryId);
+  return descendants;
+};
+
+// Get sibling categories (categories with the same parent)
+export const getSiblingCategories = (categoryId: string, categoryMap: Record<string, Category>): Category[] => {
+  const category = categoryMap[categoryId];
+  if (!category) return [];
+  
+  const parentId = category.parentId || null;
+  
+  return Object.values(categoryMap).filter(cat => 
+    cat.id !== categoryId && cat.parentId === parentId
+  );
+};
+
+// Generate slug from name
+export const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
+// Validate category data
+export const validateCategory = (category: Partial<Category>): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!category.name || category.name.trim().length === 0) {
+    errors.push('Category name is required');
+  }
+  
+  if (category.name && category.name.length > 255) {
+    errors.push('Category name must be less than 255 characters');
+  }
+  
+  if (category.description && category.description.length > 1000) {
+    errors.push('Category description must be less than 1000 characters');
+  }
+  
+  if (category.slug && category.slug.length > 255) {
+    errors.push('Category slug must be less than 255 characters');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};

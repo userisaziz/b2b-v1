@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { supabase } from './supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import socketService from '@/src/services/socket.service';
 
 export interface UserPresence {
   userId: string;
@@ -14,69 +13,58 @@ interface UsePresenceOptions {
 }
 
 export const usePresence = ({ userId, enabled = true }: UsePresenceOptions) => {
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const onlineUsersRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!enabled || !userId) return;
 
     console.log('👥 Setting up presence tracking for user:', userId);
 
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: userId,
-        },
-      },
+    // Connect to Socket.IO
+    socketService.connect(userId);
+
+    // Listen for user join events
+    socketService.onUserJoin((joinedUserId: string) => {
+      console.log('✅ User joined:', joinedUserId);
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        next.add(joinedUserId);
+        onlineUsersRef.current = next;
+        return next;
+      });
     });
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const presenceState = channel.presenceState();
-        const online = new Set<string>();
-
-        Object.keys(presenceState).forEach((key) => {
-          const presences = presenceState[key];
-          if (presences && presences.length > 0) {
-            online.add(key);
-          }
-        });
-
-        console.log('👥 Online users updated:', Array.from(online));
-        setOnlineUsers(online);
-      })
-      .on('presence', { event: 'join' }, ({ key }: { key: string }) => {
-        console.log('✅ User joined:', key);
-        setOnlineUsers((prev) => new Set([...prev, key]));
-      })
-      .on('presence', { event: 'leave' }, ({ key }: { key: string }) => {
-        console.log('❌ User left:', key);
-        setOnlineUsers((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          // Track this user as online
-          await channel.track({
-            userId,
-            online_at: new Date().toISOString(),
-          });
-        }
+    // Listen for user leave events
+    socketService.onUserLeave((leftUserId: string) => {
+      console.log('❌ User left:', leftUserId);
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        next.delete(leftUserId);
+        onlineUsersRef.current = next;
+        return next;
       });
+    });
 
-    channelRef.current = channel;
+    // Request current online users
+    socketService.requestOnlineUsers();
+
+    // Listen for online users list
+    socketService.onOnlineUsers((users: string[]) => {
+      console.log('👥 Online users updated:', users);
+      const userSet = new Set(users);
+      setOnlineUsers(userSet);
+      onlineUsersRef.current = userSet;
+    });
+
+    // Notify others that this user is online
+    socketService.notifyUserOnline(userId);
 
     // Cleanup on unmount
     return () => {
       console.log('👥 Cleaning up presence tracking');
-      if (channelRef.current) {
-        channelRef.current.untrack();
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      socketService.notifyUserOffline(userId);
+      socketService.disconnect();
     };
   }, [userId, enabled]);
 

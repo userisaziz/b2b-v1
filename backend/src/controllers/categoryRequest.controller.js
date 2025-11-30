@@ -76,11 +76,17 @@ export const createCategoryRequest = async (req, res) => {
 // Get all category requests (admin)
 export const getAllCategoryRequests = async (req, res) => {
   try {
+    console.log("getAllCategoryRequests called with query params:", req.query);
+    console.log("User making request:", req.user);
+    console.log("User type:", req.userType);
+    
     const { status, sellerId } = req.query;
     let filter = {};
     
     if (status) filter.status = status;
     if (sellerId) filter.sellerId = sellerId;
+    
+    console.log("Filter being applied:", filter);
     
     const requests = await CategoryRequest.find(filter)
       .populate("sellerId", "name companyName email")
@@ -88,6 +94,7 @@ export const getAllCategoryRequests = async (req, res) => {
       .populate("reviewedBy", "name email")
       .sort({ createdAt: -1 });
     
+    console.log(`Found ${requests.length} category requests`);
     res.json(requests);
   } catch (err) {
     console.error("Get category requests error:", err);
@@ -227,15 +234,20 @@ export const rejectCategoryRequest = async (req, res) => {
 // Get category requests for a specific seller
 export const getSellerCategoryRequests = async (req, res) => {
   try {
+    console.log("[Backend] getSellerCategoryRequests called");
+    console.log("[Backend] User:", req.user);
     const { status } = req.query;
     let filter = { sellerId: req.user._id };
     
     if (status) filter.status = status;
     
+    console.log("[Backend] Filter:", filter);
+    
     const requests = await CategoryRequest.find(filter)
       .populate("parentCategoryId", "name")
       .sort({ createdAt: -1 });
     
+    console.log(`[Backend] Found ${requests.length} requests`);
     res.json(requests);
   } catch (err) {
     console.error("Get seller category requests error:", err);

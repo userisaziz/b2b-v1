@@ -11,6 +11,7 @@ import EditProductPage from "@/pages/dashboard/products/[id]/page";
 import CategoriesPage from "@/pages/dashboard/categories/page";
 import CategoryRequestPage from "@/pages/dashboard/categories/request/page";
 import RFQsPage from "@/pages/dashboard/rfqs/page";
+import MessagesPage from "@/pages/dashboard/messages/page";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/dashboard/categories" element={<CategoriesPage />} />
           <Route path="/dashboard/categories/request" element={<CategoryRequestPage />} />
           <Route path="/dashboard/rfqs" element={<RFQsPage />} />
+          <Route path="/dashboard/messages" element={<MessagesPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

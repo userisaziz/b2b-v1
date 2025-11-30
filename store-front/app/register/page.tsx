@@ -63,7 +63,8 @@ export default function RegisterPage() {
       if (response.user.role === 'seller') {
         toast.success('Registration successful! Your seller account is pending approval.');
         setTimeout(() => {
-          window.location.href = process.env.NEXT_PUBLIC_SELLER_URL || 'http://localhost:3001/seller-dashboard/home';
+          const sellerUrl = process.env.NEXT_PUBLIC_SELLER_URL || 'http://localhost:5175';
+          window.location.href = sellerUrl;
         }, 1000);
       } else {
         toast.success('Registration successful!');

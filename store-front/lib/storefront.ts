@@ -35,8 +35,8 @@ export interface Category {
 // RFQ interface
 export interface RFQ {
   id: string;
-  buyer_id: string;
-  category_id: string;
+  buyer_id?: string;
+  category_id?: string;
   title: string;
   description: string;
   quantity?: number;
@@ -44,7 +44,10 @@ export interface RFQ {
   budget_max?: number;
   deadline?: string;
   delivery_location?: string;
-  status: 'open' | 'closed' | 'cancelled';
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  status: 'draft' | 'open' | 'closed' | 'cancelled';
   created_at: string;
   updated_at: string;
 }
@@ -112,7 +115,7 @@ export const getCategory = async (id: string): Promise<Category> => {
 
 // Post RFQ
 export const postRFQ = async (data: Partial<RFQ>): Promise<RFQ> => {
-  const response = await apiClient.post('/public/rfq', data);
+  const response = await apiClient.post('/rfqs/public', data);
   return response.data.data;
 };
 

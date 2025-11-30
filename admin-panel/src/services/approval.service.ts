@@ -119,15 +119,41 @@ export const getCategoryRequests = async (params?: {
   status?: string;
   sellerId?: string;
 }) => {
-  const queryParams = new URLSearchParams(params as any).toString();
-  const url = `/category-requests${queryParams ? `?${queryParams}` : ''}`;
-  const response = await api.get(url);
-  return response.data;
+  try {
+    const queryParams = new URLSearchParams(params as any).toString();
+    const url = `/category-requests${queryParams ? `?${queryParams}` : ''}`;
+    console.log(`API Call: GET ${url}`);
+    
+    // Log the full URL that will be called
+    const fullUrl = `http://localhost:5000/api${url}`;
+    console.log(`Full URL: ${fullUrl}`);
+    
+    const response = await api.get(url);
+    console.log(`API Response for ${url}:`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in getCategoryRequests:", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request data:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
+    throw error;
+  }
 };
 
 export const getCategoryRequest = async (id: string) => {
-  const response = await api.get(`/category-requests/${id}`);
-  return response.data;
+  try {
+    const response = await api.get(`/category-requests/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error in getCategoryRequest (${id}):`, error);
+    throw error;
+  }
 };
 
 export const approveCategoryRequest = async (id: string) => {

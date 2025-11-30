@@ -63,7 +63,9 @@ export default function CategoryApprovalPage() {
                 setLoading(true);
                 const params: any = {};
                 if (statusFilter !== "all") params.status = statusFilter;
+                console.log("Fetching category requests with params:", params);
                 const data = await getCategoryRequests(params);
+                console.log("Received category requests:", data);
                 setRequests(data);
             } catch (err) {
                 console.error("Error fetching category requests:", err);

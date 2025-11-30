@@ -84,6 +84,86 @@ export const createRFQ = async (req, res) => {
   }
 };
 
+// Create a public RFQ (no authentication required)
+export const createPublicRFQ = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      category_id,
+      quantity,
+      budget_min,
+      budget_max,
+      deadline,
+      delivery_location,
+      contact_name,
+      contact_email,
+      contact_phone
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !contact_name || !contact_email || !contact_phone) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Title, description, contact name, email, and phone are required" 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contact_email)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid email format" 
+      });
+    }
+
+    // Validate category if provided
+    let category = null;
+    if (category_id) {
+      category = await Category.findById(category_id);
+      if (!category) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid category ID" 
+        });
+      }
+    }
+
+    // Create RFQ with contact information
+    const rfqData = {
+      title,
+      description,
+      quantity: quantity ? parseInt(quantity) : undefined,
+      budget_min: budget_min ? parseFloat(budget_min) : undefined,
+      budget_max: budget_max ? parseFloat(budget_max) : undefined,
+      deadline,
+      delivery_location,
+      contact_name,
+      contact_email,
+      contact_phone,
+      status: 'open'
+    };
+
+    // Add category reference if provided
+    if (category) rfqData.category_id = category._id;
+
+    const rfq = await RFQ.create(rfqData);
+
+    res.status(201).json({
+      success: true,
+      message: "RFQ created successfully",
+      data: rfq
+    });
+  } catch (err) {
+    console.error("Create public RFQ error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error" 
+    });
+  }
+};
+
 // Get all RFQs
 export const getAllRFQs = async (req, res) => {
   try {

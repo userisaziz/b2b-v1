@@ -152,6 +152,8 @@ export const protectUniversal = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
+    console.log(`[AUTH] Token from request:`, token);
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -240,6 +242,7 @@ export const protectUniversal = async (req, res, next) => {
 export const requireRole = (...roles) => {
   return (req, res, next) => {
     console.log(`[AUTH] Checking roles: ${roles.join(', ')} for user type: ${req.userType}`);
+    console.log(`[AUTH] User object:`, req.user);
     if (!roles.includes(req.userType)) {
       console.log(`[AUTH] Access denied. User type ${req.userType} not in allowed roles: ${roles.join(', ')}`);
       return res.status(403).json({

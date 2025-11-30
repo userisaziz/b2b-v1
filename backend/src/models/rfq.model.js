@@ -25,31 +25,53 @@ const rfqSchema = new Schema({
   // Quantity needed
   quantity: {
     type: Number,
-    required: true,
     min: 1
   },
-  // Unit of measurement
-  unit: {
+  // Budget range
+  budget_min: {
+    type: Number,
+    min: 0
+  },
+  budget_max: {
+    type: Number,
+    min: 0
+  },
+  // Delivery information
+  delivery_location: {
     type: String,
-    required: true,
     trim: true
   },
-  // Buyer who created the RFQ
+  deadline: {
+    type: Date
+  },
+  // Buyer who created the RFQ (optional for public RFQs)
   buyerId: {
     type: Schema.Types.ObjectId,
-    ref: 'Buyer',
-    required: true
+    ref: 'Buyer'
   },
   // Admin who created the RFQ (for general RFQs)
   adminId: {
     type: Schema.Types.ObjectId,
     ref: 'Admin'
   },
+  // Contact information for public RFQs
+  contact_name: {
+    type: String,
+    trim: true
+  },
+  contact_email: {
+    type: String,
+    trim: true
+  },
+  contact_phone: {
+    type: String,
+    trim: true
+  },
   // Status of the RFQ
   status: {
     type: String,
-    enum: ['draft', 'published', 'closed', 'cancelled'],
-    default: 'draft'
+    enum: ['draft', 'open', 'closed', 'cancelled'],
+    default: 'open'
   },
   // Distribution settings
   distributionType: {
@@ -92,10 +114,6 @@ const rfqSchema = new Schema({
       default: Date.now
     }
   }],
-  // Expiry date for the RFQ
-  expiryDate: {
-    type: Date
-  },
   // Additional specifications
   specifications: {
     type: Map,
@@ -116,6 +134,7 @@ rfqSchema.index({ title: 'text', description: 'text' });
 rfqSchema.index({ buyerId: 1 });
 rfqSchema.index({ status: 1 });
 rfqSchema.index({ createdAt: -1 });
+rfqSchema.index({ contact_email: 1 });
 
 const RFQ = mongoose.model('RFQ', rfqSchema);
 

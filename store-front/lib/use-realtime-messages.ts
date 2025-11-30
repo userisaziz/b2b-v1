@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { supabase } from './supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import socketService from '@/src/services/socket.service';
+import { getCurrentUser } from './auth';
 
 export interface Message {
   id: string;
@@ -49,7 +49,6 @@ export const useRealtimeMessages = ({
   onStatusChange,
   enabled = true,
 }: UseRealtimeMessagesOptions) => {
-  const channelRef = useRef<RealtimeChannel | null>(null);
   const onNewMessageRef = useRef(onNewMessage);
   const onMessageUpdateRef = useRef(onMessageUpdate);
   const onMessageSentRef = useRef(onMessageSent);
@@ -63,40 +62,37 @@ export const useRealtimeMessages = ({
     onStatusChangeRef.current = onStatusChange;
   }, [onNewMessage, onMessageUpdate, onMessageSent, onStatusChange]);
 
-  // Function to send message via Supabase (no REST API)
+  // Function to send message via Socket.IO
   const sendMessage = useCallback(async ({ recipient_id, subject, message, message_type }: SendMessageParams) => {
     if (!userId) {
       throw new Error('User ID is required to send messages');
     }
 
     try {
-      console.log('📤 Sending message via Supabase direct insert...');
+      console.log('📤 Sending message via Socket.IO...');
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: userId,
-          recipient_id,
-          subject,
-          message,
-          message_type,
-          status: 'unread',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select(`
-          *,
-          recipient:users!recipient_id(id, name, email, company)
-        `)
-        .single();
+      const currentUser = getCurrentUser();
+      const messageData = {
+        recipient_id,
+        subject,
+        message,
+        message_type,
+        sender_id: userId,
+        sender_type: currentUser?.role === 'seller' ? 'Seller' : 'Buyer'
+      };
 
-      if (error) {
-        console.error('❌ Error sending message:', error);
-        throw error;
-      }
-
-      console.log('✅ Message sent successfully via Supabase:', data);
-      return data;
+      // Send via Socket.IO
+      socketService.sendMessage(messageData);
+      console.log('✅ Message sent successfully via Socket.IO');
+      
+      // Return a mock response to match the existing interface
+      return {
+        id: Date.now().toString(),
+        ...messageData,
+        status: 'unread',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     } catch (error) {
       console.error('❌ Failed to send message:', error);
       throw error;
@@ -106,106 +102,46 @@ export const useRealtimeMessages = ({
   const setupRealtimeSubscription = useCallback(() => {
     if (!enabled || !userId) return;
 
-    console.log('📡 Setting up real-time WebSocket subscription for user:', userId);
+    console.log('📡 Setting up real-time Socket.IO subscription for user:', userId);
 
-    // Create a channel for this user's messages
-    const channel = supabase
-      .channel(`messages:${userId}`)
-      // Listen for messages received (recipient_id = userId)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        async (payload: any) => {
-          console.log('✉️ New message received via WebSocket:', payload);
+    // Connect to Socket.IO
+    socketService.connect(userId);
 
-          // Fetch the complete message with sender info
-          const { data: message, error } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, name, email, company)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (!error && message && onNewMessageRef.current) {
-            onNewMessageRef.current(message as Message);
-          }
+    // Listen for new messages
+    socketService.onNewMessage((message: Message) => {
+      console.log('✉️ New message received via Socket.IO:', message);
+      
+      // Check if this is a received message
+      if (message.recipient_id === userId) {
+        if (onNewMessageRef.current) {
+          onNewMessageRef.current(message);
         }
-      )
-      // Listen for messages sent (sender_id = userId)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `sender_id=eq.${userId}`,
-        },
-        async (payload: any) => {
-          console.log('📤 Message sent via WebSocket:', payload);
-
-          // Fetch the complete message with recipient info
-          const { data: message, error } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              recipient:users!recipient_id(id, name, email, company)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (!error && message && onMessageSentRef.current) {
-            onMessageSentRef.current(message as Message);
-          }
+      } 
+      // Check if this is a sent message
+      else if (message.sender_id === userId) {
+        if (onMessageSentRef.current) {
+          onMessageSentRef.current(message);
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        async (payload: any) => {
-          console.log('🔄 Message updated via WebSocket:', payload);
+      }
+    });
 
-          // Fetch the updated message with sender info
-          const { data: message, error } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, name, email, company)
-            `)
-            .eq('id', payload.new.id)
-            .single();
+    // Listen for message updates
+    socketService.onMessageUpdated((message: Message) => {
+      console.log('🔄 Message updated via Socket.IO:', message);
+      
+      if (message.recipient_id === userId && onMessageUpdateRef.current) {
+        onMessageUpdateRef.current(message);
+      }
+    });
 
-          if (!error && message && onMessageUpdateRef.current) {
-            onMessageUpdateRef.current(message as Message);
-          }
-        }
-      )
-      .subscribe((status: string) => {
-        console.log('🔌 WebSocket subscription status:', status);
-        if (onStatusChangeRef.current) {
-          onStatusChangeRef.current(status);
-        }
-      });
-
-    channelRef.current = channel;
+    if (onStatusChangeRef.current) {
+      onStatusChangeRef.current('CONNECTED');
+    }
 
     return () => {
-      console.log('🔌 Cleaning up WebSocket subscription');
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      console.log('🔌 Cleaning up Socket.IO subscription');
+      socketService.offNewMessage(() => {});
+      socketService.offMessageUpdated(() => {});
     };
   }, [userId, enabled]);
 
@@ -217,10 +153,7 @@ export const useRealtimeMessages = ({
   }, [setupRealtimeSubscription]);
 
   const unsubscribe = useCallback(() => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    socketService.disconnect();
   }, []);
 
   return { unsubscribe, sendMessage };

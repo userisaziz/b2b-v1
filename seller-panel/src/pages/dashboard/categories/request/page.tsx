@@ -40,7 +40,9 @@ export default function CategoryRequestPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      console.log("[Seller Panel] Fetching category requests...");
       const additionData = await getCategoryRequests();
+      console.log("[Seller Panel] Received category requests:", additionData);
 
       // Attach flattened path to each request
       const flattened = additionData.map((req: any) => ({
@@ -50,7 +52,7 @@ export default function CategoryRequestPage() {
 
       setAdditionRequests(flattened);
     } catch (err) {
-      console.error("Error fetching requests:", err);
+      console.error("[Seller Panel] Error fetching requests:", err);
     } finally {
       setLoading(false);
     }

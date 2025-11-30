@@ -8,13 +8,17 @@ import {
   distributeRFQ,
   submitQuote,
   getRFQsForSeller,
-  getRFQsForBuyer
+  getRFQsForBuyer,
+  createPublicRFQ
 } from "../controllers/rfq.controller.js";
 import { protectUniversal, requireRole } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Apply universal protection to all routes
+// Public route for creating RFQs without authentication
+router.post("/public", createPublicRFQ);
+
+// Apply universal protection to all other routes
 router.use(protectUniversal);
 
 // Admin routes
