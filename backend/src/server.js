@@ -120,7 +120,9 @@ app.use(cors({
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://localhost:3001"
+    "http://localhost:3001",
+   "https://b2b-v1-seller.vercel.app",
+    "https://b2b-v1-admin.vercel.app"
   ],
   credentials: true
 }));
