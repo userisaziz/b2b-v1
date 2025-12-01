@@ -183,6 +183,13 @@ export const getMessage = async (req, res) => {
       
       // Emit update event
       io.emit('message_updated', message);
+      
+      // Emit read receipt
+      io.emit('message_read', {
+        message_id: message._id,
+        reader_id: user_id,
+        timestamp: new Date()
+      });
     }
 
     res.status(200).json({
@@ -192,6 +199,56 @@ export const getMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching message:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Get conversation between buyer and seller
+export const getConversation = async (req, res) => {
+  try {
+    const { participant_id, participant_type } = req.params;
+    const user_id = req.user.id;
+    const user_type = req.user.role;
+
+    // Validate participant type
+    if (!['Buyer', 'Seller'].includes(participant_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid participant type'
+      });
+    }
+
+    // Get messages between the two participants
+    const messages = await Message.find({
+      $or: [
+        { 
+          sender_id: user_id, 
+          sender_type: user_type,
+          recipient_id: participant_id,
+          recipient_type: participant_type
+        },
+        {
+          sender_id: participant_id,
+          sender_type: participant_type,
+          recipient_id: user_id,
+          recipient_type: user_type
+        }
+      ]
+    })
+      .populate('sender_id', 'name email company')
+      .populate('recipient_id', 'name email company')
+      .sort({ createdAt: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: messages,
+      message: 'Conversation retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Error fetching conversation:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -228,6 +285,13 @@ export const markAsRead = async (req, res) => {
 
     // Emit update event
     io.emit('message_updated', message);
+    
+    // Emit read receipt
+    io.emit('message_read', {
+      message_id: message._id,
+      reader_id: user_id,
+      timestamp: new Date()
+    });
 
     res.status(200).json({
       success: true,

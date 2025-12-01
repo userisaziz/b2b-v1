@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Grid, ChevronRight, Folder } from 'lucide-react';
-import { getAllCategories, Category, CategoryTree, searchCategories, getCategoryBreadcrumbs } from '@/src/services/category.service';
+import { getAllCategories, Category, CategoryTree, searchCategories } from '@/src/services/category.service';
 
 interface CategoryBrowserProps {
   onSelectCategory?: (category: Category) => void;
@@ -21,7 +21,6 @@ export default function CategoryBrowser({
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     loadCategories();
@@ -53,15 +52,6 @@ export default function CategoryBrowser({
       setError(err.message || 'Failed to load categories');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCategoryClick = (category: Category) => {
-    if (onSelectCategory) {
-      onSelectCategory(category);
-    } else {
-      // Default navigation to category page
-      router.push(`/categories/${category.slug}`);
     }
   };
 
@@ -122,7 +112,8 @@ export default function CategoryBrowser({
 
       {showBreadcrumbs && searchTerm && (
         <div className="text-sm text-gray-600">
-          Search results for "{searchTerm}"
+          Search results for "<span className="font-medium">{searchTerm}</span>"
+          <span className="ml-2">({filteredCategories.length} categories found)</span>
         </div>
       )}
 
@@ -132,52 +123,71 @@ export default function CategoryBrowser({
           <p className="text-gray-600">
             {searchTerm ? 'No categories found matching your search' : 'No categories available'}
           </p>
+          {searchTerm && (
+            <button 
+              onClick={() => {
+                setSearchTerm('');
+                if (categoryTree) {
+                  setFilteredCategories(categoryTree.rootCategories);
+                }
+              }}
+              className="mt-4 text-blue-600 hover:underline"
+            >
+              Clear search
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCategories.map((category) => (
-            <Card 
+            <Link 
               key={category.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleCategoryClick(category)}
+              href={`/categories/${category.slug}`}
+              className="group"
             >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-1">
-                    {category.imageUrl ? (
-                      <img
-                        src={category.imageUrl}
-                        alt={category.name}
-                        className="w-12 h-12 object-cover rounded-md"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-blue-100 rounded-md flex items-center justify-center">
-                        <Folder className="h-6 w-6 text-blue-600" />
+              <Card 
+                className="hover:shadow-md transition-shadow h-full"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {category.imageUrl ? (
+                        <img
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="w-12 h-12 object-cover rounded-md group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-blue-100 rounded-md flex items-center justify-center">
+                          <Folder className="h-6 w-6 text-blue-600" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                        {category.name}
+                      </h3>
+                      {category.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 mt-1">
+                          {category.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center text-xs text-gray-500">
+                          {category.childrenCount !== undefined && category.childrenCount > 0 && (
+                            <span>{category.childrenCount} subcategories</span>
+                          )}
+                          {category.productCount !== undefined && category.productCount > 0 && (
+                            <span className="ml-2">{category.productCount} products</span>
+                          )}
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 truncate">{category.name}</h3>
-                    {category.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2 mt-1">
-                        {category.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center text-xs text-gray-500">
-                        {category.childrenCount !== undefined && category.childrenCount > 0 && (
-                          <span>{category.childrenCount} subcategories</span>
-                        )}
-                        {category.productCount !== undefined && category.productCount > 0 && (
-                          <span className="ml-2">{category.productCount} products</span>
-                        )}
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

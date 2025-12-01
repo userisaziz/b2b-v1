@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Package, Lock, Mail, Loader2 } from "lucide-react";
 import { login } from "@/lib/auth";
-import { setSupabaseSession } from "@/lib/supabase";
+import StorefrontLayout from "@/components/layout/StorefrontLayout";
 
 export const dynamic = 'force-dynamic';
 
@@ -33,11 +33,6 @@ function LoginForm() {
       // Store token and user data
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-
-      // Configure Supabase WebSocket authentication
-      if (response.supabaseSession) {
-        await setSupabaseSession(response.supabaseSession);
-      }
 
       // Redirect based on user role
       if (response.user.role === 'admin') {
@@ -190,8 +185,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>}>
-      <LoginForm />
-    </Suspense>
+    <StorefrontLayout>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>}>
+        <LoginForm />
+      </Suspense>
+    </StorefrontLayout>
   );
 }

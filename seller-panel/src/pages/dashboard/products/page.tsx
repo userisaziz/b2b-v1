@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Edit, Eye, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Edit, Eye, Trash2, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -19,25 +19,44 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
-import { getProducts, deleteProduct } from "../../../services/product.service";
+import { getProducts, deleteProduct, getCategories } from "../../../services/product.service";
 import type { Product } from "../../../services/product.service";
 import { useNavigate } from "react-router-dom";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getCategories();
+        setCategories(categoriesData);
+      } catch (err: any) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const data = await getProducts();
+        const data = await getProducts({
+          category: selectedCategory || undefined,
+          search: searchQuery || undefined
+        });
         setProducts(data?.products || []);
         setFilteredProducts(data?.products || []);
       } catch (err: any) {
@@ -49,20 +68,7 @@ export default function ProductsPage() {
     };
 
     fetchProducts();
-  }, []);
-
-  // Filter products based on search query
-  useEffect(() => {
-    if (!searchQuery) {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.categories && product.categories.some(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase())))
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchQuery, products]);
+  }, [selectedCategory, searchQuery]);
 
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -112,8 +118,8 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-2">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -123,6 +129,33 @@ export default function ProductsPage() {
             className="pl-8"
           />
         </div>
+        
+        <div className="relative">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full sm:w-48 border border-input bg-background rounded-md py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {(searchQuery || selectedCategory) && (
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCategory("");
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       {/* Products Table */}
@@ -139,7 +172,7 @@ export default function ProductsPage() {
               <Package className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium mb-1">No products found</h3>
               <p className="text-gray-500 mb-4">
-                {searchQuery ? "No products match your search." : "Get started by adding a new product."}
+                {searchQuery || selectedCategory ? "No products match your filters." : "Get started by adding a new product."}
               </p>
               <Button onClick={() => navigate("/dashboard/products/new")}>
                 <Plus className="mr-2 h-4 w-4" />

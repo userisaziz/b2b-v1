@@ -237,3 +237,118 @@ export const getCategoryById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// =======================================================
+// GET CATEGORY BY SLUG
+// =======================================================
+export const getCategoryBySlug = async (req, res) => {
+  try {
+    const category = await Category.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ message: "Category not found" });
+    
+    // Get children categories
+    const children = await Category.find({ parentId: category._id });
+    
+    // Add children to the category object
+    const categoryWithChildren = {
+      ...category.toObject(),
+      children
+    };
+    
+    res.json(categoryWithChildren);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// =======================================================
+// GET CATEGORY BY SLUG WITH PRODUCTS
+// =======================================================
+export const getCategoryBySlugWithProducts = async (req, res) => {
+  try {
+    const category = await Category.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ message: "Category not found" });
+    
+    // Get children categories
+    const children = await Category.find({ parentId: category._id });
+    
+    // Get products in this category
+    const products = await Product.find({ categories: category._id })
+      .populate("categories")
+      .populate("sellerId", "name email")
+      .sort({ createdAt: -1 })
+      .limit(20);
+    
+    // Add children and products to the category object
+    const categoryWithDetails = {
+      ...category.toObject(),
+      children,
+      products
+    };
+    
+    res.json(categoryWithDetails);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// =======================================================
+// GET CATEGORY PRODUCTS
+// =======================================================
+export const getCategoryProducts = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 20,
+      sort = '-createdAt'
+    } = req.query;
+    
+    // Find category by ID or slug
+    let category;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      category = await Category.findById(req.params.id);
+    } else {
+      category = await Category.findOne({ slug: req.params.id });
+    }
+    
+    if (!category) return res.status(404).json({ message: "Category not found" });
+    
+    // Build query for products in this category
+    const query = { categories: category._id };
+    
+    // Calculate pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Execute query with pagination
+    const products = await Product.find(query)
+      .populate("categories")
+      .populate("sellerId", "name email companyName")
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+      
+    // Get total count for pagination
+    const total = await Product.countDocuments(query);
+    
+    res.json({
+      data: products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
+      category: {
+        id: category._id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description
+      }
+    });
+  } catch (err) {
+    console.error("Get category products error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

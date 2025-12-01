@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import RegisterForm from "@/src/components/auth/RegisterForm";
 import { isAuthenticated } from "@/src/services/auth.service";
-import Header from "@/src/components/layout/Header";
+import StorefrontLayout from "@/components/layout/StorefrontLayout";
 
 export default function RegisterPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -26,13 +26,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+    <StorefrontLayout>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+          </div>
         </div>
       </div>
-    </div>
+    </StorefrontLayout>
   );
 }

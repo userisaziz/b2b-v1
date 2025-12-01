@@ -2,7 +2,7 @@ import apiClient from './api';
 
 // Product interfaces
 export interface Product {
-  id: string;
+  _id: string;
   seller_id: string;
   category_id: string;
   name: string;
@@ -22,7 +22,7 @@ export interface Product {
 
 // Category interface
 export interface Category {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   parent_id: string | null;
@@ -30,6 +30,7 @@ export interface Category {
   created_at: string;
   updated_at: string;
   subcategories?: Category[];
+  productCount?: number; // Add product count property
 }
 
 // RFQ interface
@@ -71,17 +72,48 @@ export const getProducts = async (params?: {
   min_price?: number;
   max_price?: number;
 }): Promise<{ data: Product[]; pagination: any }> => {
-  const response = await apiClient.get('/public/products', { params });
+  const response = await apiClient.get('/products', { params });
+  
+  // Transform products to ensure consistent properties
+  let products = response.data.data || response.data;
+  if (Array.isArray(products)) {
+    products = products.map(product => ({
+      ...product,
+      _id: product._id || product.id, // Ensure _id is present
+      id: product.id || product._id, // Ensure id is present
+      seller_id: product.seller_id || product.sellerId,
+      category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
+      min_order_quantity: product.min_order_quantity || 1,
+      specifications: product.specifications || {}
+    }));
+  }
+  
   return {
-    data: response.data.data,
-    pagination: response.data.pagination
+    data: products,
+    pagination: response.data.pagination || { page: 1, limit: products.length, total: products.length }
   };
 };
 
 // Get single product
 export const getProduct = async (id: string): Promise<Product> => {
-  const response = await apiClient.get(`/public/products/${id}`);
-  return response.data.data;
+  // Validate the ID format before making the request
+  if (!id || id === 'undefined') {
+    throw new Error('Invalid product ID');
+  }
+  
+  const response = await apiClient.get(`/products/${id}`);
+  
+  // Transform product to ensure consistent properties
+  const product = response.data;
+  return {
+    ...product,
+    _id: product._id || product.id, // Ensure _id is present
+    id: product.id || product._id, // Ensure id is present
+    seller_id: product.seller_id || product.sellerId,
+    category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
+    min_order_quantity: product.min_order_quantity || 1,
+    specifications: product.specifications || {}
+  };
 };
 
 // Alias for getProduct
@@ -93,24 +125,51 @@ export interface SendMessageData {
   subject: string;
   message: string;
   message_type?: 'general' | 'product_inquiry' | 'support' | 'rfq';
+  recipient_type?: 'Buyer' | 'Seller';
 }
 
 // Send message
 export const sendMessage = async (data: SendMessageData): Promise<any> => {
-  const response = await apiClient.post('/messages', data);
-  return response.data.data;
+  // Determine recipient type based on current user role or default to Seller
+  const recipientType = data.recipient_type || 'Seller';
+  
+  const requestData = {
+    ...data,
+    recipient_type: recipientType
+  };
+  
+  const response = await apiClient.post('/messages/send', requestData);
+  return response.data;
 };
 
 // Get all categories
 export const getCategories = async (): Promise<Category[]> => {
-  const response = await apiClient.get('/public/categories');
-  return response.data.data;
+  const response = await apiClient.get('/categories');
+  
+  // Transform categories to map _id to id
+  let categories = response.data;
+  if (Array.isArray(categories)) {
+    categories = categories.map(category => ({
+      ...category,
+      id: category.id || category._id,
+      parent_id: category.parent_id || category.parentId || null
+    }));
+  }
+  
+  return categories;
 };
 
 // Get category by ID
 export const getCategory = async (id: string): Promise<Category> => {
-  const response = await apiClient.get(`/public/categories/${id}`);
-  return response.data.data;
+  const response = await apiClient.get(`/categories/${id}`);
+  
+  // Transform category to map _id to id
+  const category = response.data;
+  return {
+    ...category,
+    id: category.id || category._id,
+    parent_id: category.parent_id || category.parentId || null
+  };
 };
 
 // Post RFQ
@@ -121,16 +180,16 @@ export const postRFQ = async (data: Partial<RFQ>): Promise<RFQ> => {
 
 // Get sellers
 export const getSellers = async (category_id?: string): Promise<Seller[]> => {
-  const response = await apiClient.get('/public/sellers', {
+  const response = await apiClient.get('/sellers', {
     params: category_id ? { category_id } : undefined
   });
-  return response.data.data;
+  return response.data;
 };
 
 // Track product view (authenticated users)
 export const trackProductView = async (productId: string): Promise<void> => {
   try {
-    await apiClient.post(`/public/products/${productId}/view`);
+    await apiClient.post(`/products/${productId}/view`);
   } catch (error) {
     // Silently fail if not authenticated
     console.log('Product view tracking skipped (not authenticated)');
@@ -140,7 +199,7 @@ export const trackProductView = async (productId: string): Promise<void> => {
 // Track catalogue visit (authenticated users)
 export const trackCatalogueView = async (sellerId: string): Promise<void> => {
   try {
-    await apiClient.post('/public/catalogue/view', { seller_id: sellerId });
+    await apiClient.post('/catalogue/view', { seller_id: sellerId });
   } catch (error) {
     // Silently fail if not authenticated
     console.log('Catalogue view tracking skipped (not authenticated)');

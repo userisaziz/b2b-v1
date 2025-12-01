@@ -47,8 +47,10 @@ export interface CategoryTree {
 // Get all categories with hierarchical structure
 export const getAllCategories = async (): Promise<CategoryTree> => {
   try {
+    console.log('Fetching all categories');
     const response = await apiClient.get('/categories');
     const categories: Category[] = response.data;
+    console.log('Categories received:', categories.length);
     
     // Build hierarchical structure
     const categoryMap: Record<string, Category> = {};
@@ -81,11 +83,14 @@ export const getAllCategories = async (): Promise<CategoryTree> => {
       }
     });
     
-    return {
+    const result = {
       rootCategories,
       categoryMap
     };
+    console.log('Categories processed:', result);
+    return result;
   } catch (error: any) {
+    console.error('Error fetching all categories:', error);
     throw error.response?.data || { message: 'An error occurred while fetching categories' };
   }
 };
@@ -109,20 +114,49 @@ export const getCategoryById = async (id: string): Promise<Category> => {
 // Get category by slug
 export const getCategoryBySlug = async (slug: string): Promise<Category> => {
   try {
-    // First get all categories to find the one with matching slug
-    const allCategories = await getAllCategories();
+    console.log('Fetching category by slug:', slug);
+    const response = await apiClient.get(`/categories/slug/${slug}`);
+    console.log('API response for category:', response.data);
+    const category = response.data;
     
-    // Find category by slug
-    const category = Object.values(allCategories.categoryMap).find(cat => cat.slug === slug);
-    
-    if (!category) {
+    // Ensure consistent ID field
+    const transformedCategory = {
+      ...category,
+      id: category._id
+    };
+    console.log('Transformed category:', transformedCategory);
+    return transformedCategory;
+  } catch (error: any) {
+    console.error('Error fetching category by slug:', slug, error);
+    // Handle 404 errors specifically
+    if (error.response?.status === 404) {
       throw new Error('Category not found');
     }
-    
-    // Get full details for the category
-    return await getCategoryById(category.id);
-  } catch (error: any) {
     throw error.response?.data || { message: 'An error occurred while fetching the category' };
+  }
+};
+
+// Get category by slug with products
+export const getCategoryBySlugWithProducts = async (slug: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/categories/slug/${slug}/products`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while fetching the category with products' };
+  }
+};
+
+// Get products for a category
+export const getCategoryProducts = async (categoryId: string, params?: {
+  page?: number;
+  limit?: number;
+  sort?: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/categories/${categoryId}/products`, { params });
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'An error occurred while fetching category products' };
   }
 };
 

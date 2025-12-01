@@ -22,6 +22,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   // Load messages
   const loadMessages = async () => {
@@ -62,8 +63,31 @@ export default function MessagesPage() {
         
         socketService.connect(sellerData._id);
         
+        // Request online users
+        socketService.requestOnlineUsers();
+        
+        // Listen for online users
+        const handleOnlineUsers = (users: string[]) => {
+          setOnlineUsers(new Set(users));
+        };
+        socketService.onOnlineUsers(handleOnlineUsers);
+        
+        // Listen for user status changes
+        const handleUserStatusChanged = (data: { userId: string; status: 'online' | 'offline' | 'away' }) => {
+          setOnlineUsers(prev => {
+            const newSet = new Set(prev);
+            if (data.status === 'online') {
+              newSet.add(data.userId);
+            } else {
+              newSet.delete(data.userId);
+            }
+            return newSet;
+          });
+        };
+        socketService.onUserStatusChanged(handleUserStatusChanged);
+        
         // Listen for new messages
-        socketService.onNewMessage((message: Message) => {
+        const handleNewMessage = (message: Message) => {
           if (message.recipient_id === sellerData._id) {
             setInbox(prev => [message, ...prev]);
             // Update unread count
@@ -71,10 +95,11 @@ export default function MessagesPage() {
           } else if (message.sender_id === sellerData._id) {
             setSent(prev => [message, ...prev]);
           }
-        });
+        };
+        socketService.onNewMessage(handleNewMessage);
         
         // Listen for message updates
-        socketService.onMessageUpdated((message: Message) => {
+        const handleMessageUpdated = (message: Message) => {
           if (message.recipient_id === sellerData._id) {
             setInbox(prev => prev.map(msg => msg.id === message.id ? message : msg));
             // If message was marked as read, decrease unread count
@@ -88,18 +113,25 @@ export default function MessagesPage() {
           if (selectedMessage?.id === message.id) {
             setSelectedMessage(message);
           }
-        });
+        };
+        socketService.onMessageUpdated(handleMessageUpdated);
+        
+        // Notify that user is online
+        socketService.updateStatus('online');
+        
+        return () => {
+          socketService.offOnlineUsers(handleOnlineUsers);
+          socketService.offUserStatusChanged(handleUserStatusChanged);
+          socketService.offNewMessage(handleNewMessage);
+          socketService.offMessageUpdated(handleMessageUpdated);
+          socketService.updateStatus('offline');
+        };
       } catch (error) {
         console.error("Error loading seller:", error);
       }
     };
 
     loadSeller();
-
-    return () => {
-      socketService.offNewMessage(() => {});
-      socketService.offMessageUpdated(() => {});
-    };
   }, []);
 
   // Handle message selection
@@ -114,6 +146,13 @@ export default function MessagesPage() {
         ));
         // Update unread count
         setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Notify via socket that message was read
+        socketService.markAsRead({
+          message_id: message.id,
+          recipient_id: message.recipient_id,
+          reader_id: seller._id
+        });
       } catch (error) {
         console.error("Error marking message as read:", error);
       }
@@ -146,6 +185,11 @@ export default function MessagesPage() {
     } catch (error) {
       console.error("Error sending message:", error);
     }
+  };
+
+  // Check if user is online
+  const isUserOnline = (userId: string) => {
+    return onlineUsers.has(userId);
   };
 
   if (loading) {
@@ -283,6 +327,9 @@ export default function MessagesPage() {
                       <div className="flex justify-between">
                         <h3 className="font-medium text-gray-900">
                           {message.sender?.name || "Unknown Sender"}
+                          {message.sender?.id && isUserOnline(message.sender.id) && (
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-2"></span>
+                          )}
                         </h3>
                         <span className="text-xs text-gray-500">
                           {new Date(message.created_at).toLocaleDateString()}
@@ -317,6 +364,9 @@ export default function MessagesPage() {
                       <div className="flex justify-between">
                         <h3 className="font-medium text-gray-900">
                           {message.recipient?.name || "Unknown Recipient"}
+                          {message.recipient?.id && isUserOnline(message.recipient.id) && (
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-2"></span>
+                          )}
                         </h3>
                         <span className="text-xs text-gray-500">
                           {new Date(message.created_at).toLocaleDateString()}
@@ -339,9 +389,15 @@ export default function MessagesPage() {
                   <div className="mt-2">
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">From:</span> {selectedMessage.sender?.name} ({selectedMessage.sender?.email})
+                      {selectedMessage.sender?.id && isUserOnline(selectedMessage.sender.id) && (
+                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-2"></span>
+                      )}
                     </p>
                     <p className="text-sm text-gray-600">
                       <span className="font-medium">To:</span> {selectedMessage.recipient?.name}
+                      {selectedMessage.recipient?.id && isUserOnline(selectedMessage.recipient.id) && (
+                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full ml-2"></span>
+                      )}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(selectedMessage.created_at).toLocaleString()}

@@ -81,21 +81,57 @@ class SocketService {
     }
   }
 
-  typing(data: { recipient_id: string; is_typing: boolean }) {
+  leaveRoom(roomId: string) {
+    if (this.socket) {
+      this.socket.emit('leave_room', roomId);
+    }
+  }
+
+  typing(data: { recipient_id: string; is_typing: boolean; conversation_id?: string }) {
     if (this.socket) {
       this.socket.emit('typing', data);
     }
   }
 
-  onTyping(callback: (data: { sender_id: string; is_typing: boolean }) => void) {
+  onTyping(callback: (data: { sender_id: string; is_typing: boolean; conversation_id?: string }) => void) {
     if (this.socket) {
       this.socket.on('user_typing', callback);
     }
   }
 
-  offTyping(callback: (data: { sender_id: string; is_typing: boolean }) => void) {
+  offTyping(callback: (data: { sender_id: string; is_typing: boolean; conversation_id?: string }) => void) {
     if (this.socket) {
       this.socket.off('user_typing', callback);
+    }
+  }
+
+  markAsRead(data: { message_id: string; recipient_id: string; reader_id: string }) {
+    if (this.socket) {
+      this.socket.emit('mark_as_read', data);
+    }
+  }
+
+  onMessageRead(callback: (data: { message_id: string; reader_id: string; timestamp: Date }) => void) {
+    if (this.socket) {
+      this.socket.on('message_read', callback);
+    }
+  }
+
+  offMessageRead(callback: (data: { message_id: string; reader_id: string; timestamp: Date }) => void) {
+    if (this.socket) {
+      this.socket.off('message_read', callback);
+    }
+  }
+
+  onMessageDelivered(callback: (data: { messageId: string; timestamp: Date }) => void) {
+    if (this.socket) {
+      this.socket.on('message_delivered', callback);
+    }
+  }
+
+  offMessageDelivered(callback: (data: { messageId: string; timestamp: Date }) => void) {
+    if (this.socket) {
+      this.socket.off('message_delivered', callback);
     }
   }
 
@@ -133,6 +169,30 @@ class SocketService {
   onOnlineUsers(callback: (users: string[]) => void) {
     if (this.socket) {
       this.socket.on('online_users', callback);
+    }
+  }
+
+  offOnlineUsers(callback: (users: string[]) => void) {
+    if (this.socket) {
+      this.socket.off('online_users', callback);
+    }
+  }
+
+  onUserStatusChanged(callback: (data: { userId: string; status: 'online' | 'offline' | 'away' }) => void) {
+    if (this.socket) {
+      this.socket.on('user_status_changed', callback);
+    }
+  }
+
+  offUserStatusChanged(callback: (data: { userId: string; status: 'online' | 'offline' | 'away' }) => void) {
+    if (this.socket) {
+      this.socket.off('user_status_changed', callback);
+    }
+  }
+
+  updateStatus(status: 'online' | 'offline' | 'away') {
+    if (this.socket) {
+      this.socket.emit('update_status', { status });
     }
   }
 }

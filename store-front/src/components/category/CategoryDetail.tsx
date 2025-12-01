@@ -19,24 +19,32 @@ import {
   getCategoryBreadcrumbs, 
   getCategoryDescendants,
   getSiblingCategories,
-  getAllCategories
+  getAllCategories,
+  getCategoryProducts
 } from '@/src/services/category.service';
+import { getProducts, Product } from '@/lib/storefront';
 
 interface CategoryDetailProps {
   slug: string;
 }
 
 export default function CategoryDetail({ slug }: CategoryDetailProps) {
+  console.log('CategoryDetail component rendered with slug:', slug);
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<any[]>([]);
   const [descendants, setDescendants] = useState<Category[]>([]);
   const [siblings, setSiblings] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    loadCategory();
+    console.log('CategoryDetail useEffect triggered with slug:', slug);
+    if (slug) {
+      loadCategory();
+    }
   }, [slug]);
 
   const loadCategory = async () => {
@@ -44,28 +52,53 @@ export default function CategoryDetail({ slug }: CategoryDetailProps) {
       setLoading(true);
       setError(null);
       
+      console.log('Loading category with slug:', slug);
+      
       // Get category by slug
       const categoryData = await getCategoryBySlug(slug);
+      console.log('Category data received:', categoryData);
       setCategory(categoryData);
       
       // Get all categories to build relationships
       const allCategories = await getAllCategories();
+      console.log('All categories loaded:', allCategories);
       
       // Get breadcrumbs
       const breadcrumbData = getCategoryBreadcrumbs(categoryData, allCategories.categoryMap);
+      console.log('Breadcrumb data:', breadcrumbData);
       setBreadcrumbs(breadcrumbData);
       
       // Get descendants
       const descendantData = getCategoryDescendants(categoryData.id, allCategories.categoryMap);
+      console.log('Descendant data:', descendantData);
       setDescendants(descendantData);
       
       // Get siblings
       const siblingData = getSiblingCategories(categoryData.id, allCategories.categoryMap);
+      console.log('Sibling data:', siblingData);
       setSiblings(siblingData);
+      
+      // Load products for this category
+      loadProducts(categoryData.id);
     } catch (err: any) {
+      console.error('Error loading category:', err);
       setError(err.message || 'Failed to load category');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProducts = async (categoryId: string) => {
+    try {
+      console.log('Loading products for category:', categoryId);
+      setProductsLoading(true);
+      const response = await getCategoryProducts(categoryId, { limit: 20 });
+      console.log('Products loaded:', response.data.length);
+      setProducts(response.data);
+    } catch (err) {
+      console.error('Failed to load products:', err);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -75,7 +108,7 @@ export default function CategoryDetail({ slug }: CategoryDetailProps) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
           <div className="h-32 bg-gray-200 rounded-lg mb-6"></div>
@@ -91,22 +124,29 @@ export default function CategoryDetail({ slug }: CategoryDetailProps) {
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-500 mb-4">{error}</div>
-        <Button onClick={loadCategory}>Try Again</Button>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-red-500 mb-4">
+          <Package className="h-12 w-12 mx-auto" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Category</h3>
+        <p className="text-gray-500 text-center mb-4">{error}</p>
+        <Button onClick={() => router.refresh()}>
+          Try Again
+        </Button>
       </div>
     );
   }
 
   if (!category) {
     return (
-      <div className="text-center py-12">
-        <Grid className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Category not found</h2>
-        <p className="text-gray-600 mb-4">The category you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => router.push('/categories')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Categories
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="text-gray-400 mb-4">
+          <Folder className="h-12 w-12 mx-auto" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Category Not Found</h3>
+        <p className="text-gray-500 text-center mb-4">The category you're looking for doesn't exist.</p>
+        <Button onClick={() => router.back()}>
+          Go Back
         </Button>
       </div>
     );
@@ -115,246 +155,174 @@ export default function CategoryDetail({ slug }: CategoryDetailProps) {
   return (
     <div className="space-y-8">
       {/* Breadcrumbs */}
-      <nav className="flex items-center space-x-2 text-sm">
-        <Link href="/categories" className="text-blue-600 hover:underline">
-          Categories
-        </Link>
-        {breadcrumbs.map((breadcrumb, index) => (
-          <span key={breadcrumb.id} className="flex items-center">
-            <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
+      <nav className="flex items-center space-x-2 text-sm text-gray-500">
+        <Link href="/" className="hover:text-gray-700">Home</Link>
+        {breadcrumbs.map((crumb, index) => (
+          <div key={crumb.id} className="flex items-center">
+            <ChevronRight className="h-4 w-4 mx-2" />
             {index === breadcrumbs.length - 1 ? (
-              <span className="text-gray-900 font-medium">{breadcrumb.name}</span>
+              <span className="text-gray-900 font-medium">{crumb.name}</span>
             ) : (
-              <Link 
-                href={`/categories/${breadcrumb.slug}`} 
-                className="text-blue-600 hover:underline"
-              >
-                {breadcrumb.name}
+              <Link href={`/categories/${crumb.slug}`} className="hover:text-gray-700">
+                {crumb.name}
               </Link>
             )}
-          </span>
+          </div>
         ))}
       </nav>
 
       {/* Category Header */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-shrink-0">
-              {category.imageUrl ? (
-                <img
-                  src={category.imageUrl}
-                  alt={category.name}
-                  className="w-24 h-24 object-cover rounded-lg"
-                />
-              ) : (
-                <div className="w-24 h-24 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Grid className="h-12 w-12 text-blue-600" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">{category.name}</h1>
-                <Badge variant={category.isActive ? "default" : "secondary"}>
-                  {category.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              
-              {category.description && (
-                <p className="text-gray-600 mb-4">{category.description}</p>
-              )}
-              
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                <div className="flex items-center">
-                  <Tag className="h-4 w-4 mr-1" />
-                  <span>Level {category.level}</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span>Created {new Date(category.createdAt).toLocaleDateString()}</span>
-                </div>
-                {category.productCount !== undefined && category.productCount > 0 && (
-                  <div className="flex items-center">
-                    <Package className="h-4 w-4 mr-1" />
-                    <span>{category.productCount} products</span>
-                  </div>
-                )}
-              </div>
-              
-              {category.metadata?.metaDescription && (
-                <p className="text-sm text-gray-500 mt-3 italic">
-                  {category.metadata.metaDescription}
-                </p>
-              )}
-            </div>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{category.name}</h1>
+            {category.description && (
+              <p className="text-gray-600 max-w-2xl">{category.description}</p>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Sibling Categories */}
-      {siblings.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Related Categories</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {siblings.map((sibling) => (
-              <Card 
-                key={sibling.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleCategoryClick(sibling.slug)}
-              >
-                <CardContent className="p-4 text-center">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Folder className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
-                    {sibling.name}
-                  </h3>
-                  {sibling.productCount !== undefined && sibling.productCount > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {sibling.productCount} products
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex items-center gap-2">
+            <Tag className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-500">
+              {category.productCount || 0} {category.productCount === 1 ? 'Product' : 'Products'}
+            </span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Subcategories */}
-      {category.children && category.children.length > 0 && (
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Subcategories</h2>
-            <Badge variant="secondary">
-              {category.children.length} {category.children.length === 1 ? 'Category' : 'Categories'}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {category.children.map((subcategory) => (
-              <Card 
-                key={subcategory.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleCategoryClick(subcategory.slug)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {subcategory.imageUrl ? (
-                        <img
-                          src={subcategory.imageUrl}
-                          alt={subcategory.name}
-                          className="w-10 h-10 object-cover rounded-md"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-blue-100 rounded-md flex items-center justify-center">
-                          <Folder className="h-5 w-5 text-blue-600" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate text-sm">
-                        {subcategory.name}
-                      </h3>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="flex items-center text-xs text-gray-500">
-                          {subcategory.childrenCount !== undefined && subcategory.childrenCount > 0 && (
-                            <span>{subcategory.childrenCount}</span>
-                          )}
-                          {subcategory.productCount !== undefined && subcategory.productCount > 0 && (
-                            <span className="ml-1">{subcategory.productCount} products</span>
-                          )}
-                        </div>
-                        <ChevronRight className="h-3 w-3 text-gray-400 flex-shrink-0" />
+      {(descendants.length > 0 || siblings.length > 0) && (
+        <section>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {category.parentId ? 'Related Categories' : 'Subcategories'}
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {descendants.length > 0 ? (
+              descendants.map((subCategory) => (
+                <Card 
+                  key={subCategory.id} 
+                  className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
+                  onClick={() => handleCategoryClick(subCategory.slug)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gray-100 rounded-lg p-2">
+                        <Folder className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{subCategory.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {subCategory.productCount || 0} products
+                        </p>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              siblings.map((siblingCategory) => (
+                <Card 
+                  key={siblingCategory.id} 
+                  className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
+                  onClick={() => handleCategoryClick(siblingCategory.slug)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gray-100 rounded-lg p-2">
+                        <Folder className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{siblingCategory.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {siblingCategory.productCount || 0} products
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* All Descendants */}
-      {descendants.length > 0 && (
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">All Subcategories</h2>
-            <Badge variant="secondary">
-              {descendants.length} {descendants.length === 1 ? 'Category' : 'Categories'}
-            </Badge>
-          </div>
-          <div className="overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Level
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Products
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {descendants.map((descendant) => (
-                  <tr 
-                    key={descendant.id} 
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleCategoryClick(descendant.slug)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          {descendant.imageUrl ? (
-                            <img
-                              src={descendant.imageUrl}
-                              alt={descendant.name}
-                              className="h-10 w-10 rounded-md object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center">
-                              <Folder className="h-5 w-5 text-blue-600" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{descendant.name}</div>
-                          <div className="text-sm text-gray-500">{descendant.slug}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">Level {descendant.level}</div>
-                      <div className="text-sm text-gray-500">{descendant.path}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {descendant.productCount || 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        descendant.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {descendant.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Products Section */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Products in {category.name}
+          </h2>
+          <Button variant="outline" size="sm">
+            <Grid className="h-4 w-4 mr-2" />
+            View All
+          </Button>
         </div>
-      )}
+
+        {productsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-gray-200 rounded-lg h-48 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Filter out products with undefined IDs */}
+            {products.filter(product => product._id && product._id !== 'undefined').map((product) => (
+              <Link 
+                key={product._id} 
+                href={`/products/${product._id}`}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group"
+              >
+                <div className="aspect-video bg-gray-100 relative">
+                  {product.images && product.images.length > 0 ? (
+                    <img 
+                      src={product.images[0]} 
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <Package className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-gray-900">
+                      ₹{product.price}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      MOQ: {product.min_order_quantity || 1}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <Calendar className="h-3 w-3" />
+                      <span>In Stock</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <span>{product.stock} units</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No products found</h3>
+            <p className="text-gray-500">There are no products in this category yet.</p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

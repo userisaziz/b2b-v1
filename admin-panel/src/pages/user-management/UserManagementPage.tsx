@@ -7,7 +7,6 @@ import {
     TrendingUp,
     Users,
     ShoppingBag,
-    CreditCard,
     AlertCircle,
     Filter,
     AlertTriangle

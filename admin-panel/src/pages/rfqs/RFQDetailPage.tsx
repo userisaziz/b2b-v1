@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Calendar,
-  User,
-  Package,
-  Tag,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   Send,
   Download,

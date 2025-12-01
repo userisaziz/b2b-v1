@@ -66,3 +66,9 @@ export const getUnreadCount = async () => {
   const response = await apiClient.get('/messages/unread/count');
   return response.data;
 };
+
+// Get conversation with a participant
+export const getConversation = async (participant_id: string, participant_type: 'Buyer' | 'Seller') => {
+  const response = await apiClient.get(`/messages/conversation/${participant_id}/${participant_type}`);
+  return response.data;
+};

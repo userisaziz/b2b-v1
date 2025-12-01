@@ -363,12 +363,12 @@ export default function EditProductPage() {
                   <Label htmlFor="categoryIds">Categories *</Label>
                   <div className="relative">
                     <Folder className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Select onValueChange={(value) => handleCategoryChange({ target: { value } } as React.ChangeEvent<HTMLSelectElement>)}>
+                    <Select onValueChange={(value) => form.setValue("categoryIds", [value])}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {flatCategories.map((cat: any) => (
+                        {allCategoriesFlat.map((cat: any) => (
                           <SelectItem key={cat._id || cat.id} value={cat._id || cat.id}>
                             {cat.displayName}
                           </SelectItem>

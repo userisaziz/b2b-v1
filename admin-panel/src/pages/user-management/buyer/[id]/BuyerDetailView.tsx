@@ -13,8 +13,7 @@ import {
   CheckCircle, 
   XCircle,
   Clock,
-  User,
-  ShoppingCart
+  User
 } from "lucide-react";
 
 // Mock buyer data

@@ -25,14 +25,14 @@ router.use((req, res, next) => {
 router.post("/", protectSeller, upload.single("image"), createCategoryRequest);
 
 // Admin routes for managing category requests
-router.get("/", requireRole("admin"), (req, res, next) => {
+router.get("/", protectUniversal, requireRole("admin"), (req, res, next) => {
   console.log("[CategoryRequest Route] Admin route accessed");
   next();
 }, getAllCategoryRequests);
 
-router.get("/:id", requireRole("admin"), getCategoryRequestById);
-router.patch("/:id/approve", requireRole("admin"), approveCategoryRequest);
-router.patch("/:id/reject", requireRole("admin"), rejectCategoryRequest);
+router.get("/:id", protectUniversal, requireRole("admin"), getCategoryRequestById);
+router.patch("/:id/approve", protectUniversal, requireRole("admin"), approveCategoryRequest);
+router.patch("/:id/reject", protectUniversal, requireRole("admin"), rejectCategoryRequest);
 
 // Seller routes for viewing their own requests
 router.get("/seller", protectSeller, getSellerCategoryRequests);

@@ -28,24 +28,34 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
-  supabaseSession?: {
-    access_token: string;
-    refresh_token: string;
-  };
 }
 
 // Login
 export const login = async (data: LoginData & { role?: string }): Promise<AuthResponse> => {
   const role = data.role || 'buyer'; // Default to buyer if not specified
-  const endpoint = role === 'seller' ? '/seller/login' : '/buyer/login';
+  // Use the unified login endpoint for all user types
+  const endpoint = '/auth/login';
   const response = await apiClient.post(endpoint, data);
-  return response.data.data;
+  
+  // Handle the response structure from backend
+  const responseData = response.data;
+  
+  // Map the backend response to our expected structure
+  return {
+    token: responseData.token,
+    user: {
+      id: responseData.data.id,
+      email: responseData.data.email,
+      name: responseData.data.name,
+      role: responseData.data.userType
+    }
+  };
 };
 
 // Register
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   const role = data.role || 'buyer';
-  const endpoint = role === 'seller' ? '/seller/register' : '/buyer/register';
+  const endpoint = role === 'seller' ? '/auth/seller/register' : '/auth/buyer/register';
   const response = await apiClient.post(endpoint, data);
   return response.data.data;
 };

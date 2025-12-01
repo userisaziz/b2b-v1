@@ -5,7 +5,8 @@ import {
   getSent, 
   getMessage, 
   markAsRead,
-  getUnreadCount
+  getUnreadCount,
+  getConversation
 } from '../controllers/message.controller.js';
 import { protectUniversal } from '../middleware/auth.middleware.js';
 import { body } from 'express-validator';
@@ -26,6 +27,7 @@ router.post('/send',
 
 router.get('/inbox', getInbox);
 router.get('/sent', getSent);
+router.get('/conversation/:participant_id/:participant_type', getConversation);
 router.get('/:id', getMessage);
 router.put('/:id/read', markAsRead);
 router.get('/unread/count', getUnreadCount);

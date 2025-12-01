@@ -10,8 +10,9 @@ import { sendMessage as sendStorefrontMessage } from "@/lib/storefront";
 import { useRealtimeMessages } from "@/lib/use-realtime-messages";
 import { usePresence } from "@/lib/use-presence";
 import StorefrontLayout from "@/components/layout/StorefrontLayout";
-import { ChatInterface } from "@/components/messages/chat-interface";
+import { EnhancedChatInterface } from "@/components/messages/enhanced-chat-interface";
 import { toast } from "sonner";
+import socketService from "@/src/services/socket.service";
 
 interface Message {
   id: string;
@@ -41,6 +42,7 @@ export default function MessagesPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const user = getCurrentUser();
 
   // Real-time presence tracking
@@ -138,6 +140,46 @@ export default function MessagesPage() {
     },
   });
 
+  // Setup presence tracking
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Connect to socket and register user
+    socketService.connect(user.id);
+    
+    // Request online users
+    socketService.requestOnlineUsers();
+    
+    // Listen for online users
+    const handleOnlineUsers = (users: string[]) => {
+      setOnlineUsers(new Set(users));
+    };
+    socketService.onOnlineUsers(handleOnlineUsers);
+    
+    // Listen for user status changes
+    const handleUserStatusChanged = (data: { userId: string; status: 'online' | 'offline' | 'away' }) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        if (data.status === 'online') {
+          newSet.add(data.userId);
+        } else {
+          newSet.delete(data.userId);
+        }
+        return newSet;
+      });
+    };
+    socketService.onUserStatusChanged(handleUserStatusChanged);
+
+    // Notify that user is online
+    socketService.updateStatus('online');
+
+    return () => {
+      socketService.offOnlineUsers(handleOnlineUsers);
+      socketService.offUserStatusChanged(handleUserStatusChanged);
+      socketService.updateStatus('offline');
+    };
+  }, [user?.id]);
+
   const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
@@ -183,7 +225,7 @@ export default function MessagesPage() {
       const existing = convMap.get(key);
       
       if (!existing || new Date(msg.created_at) > new Date(existing.lastMessageTime)) {
-        const online = isUserOnline(participant.id);
+        const online = onlineUsers.has(participant.id);
         convMap.set(key, {
           id: key,
           participantId: participant.id,
@@ -203,7 +245,7 @@ export default function MessagesPage() {
     return Array.from(convMap.values()).sort((a, b) => 
       new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
-  }, [inbox, sent, user, isUserOnline]);
+  }, [inbox, sent, user, onlineUsers]);
 
   // Get messages for selected conversation
   const conversationMessages = useMemo(() => {
@@ -327,7 +369,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat Interface */}
-        <ChatInterface
+        <EnhancedChatInterface
           conversations={conversations}
           messages={conversationMessages}
           currentUserId={user?.id || ''}

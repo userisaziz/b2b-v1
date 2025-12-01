@@ -30,8 +30,15 @@ export interface Product {
   updatedAt: string;
 }
 
-export const getProducts = async () => {
-  const response = await api.get('/products/seller');
+export const getProducts = async (params?: {
+  category?: string;
+  search?: string;
+  min_price?: number;
+  max_price?: number;
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await api.get('/products/seller', { params });
   return response.data;
 };
 

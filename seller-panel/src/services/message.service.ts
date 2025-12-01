@@ -23,46 +23,59 @@ export interface Message {
   };
 }
 
-export interface SendMessageParams {
-  recipient_id: string;
-  subject: string;
-  message: string;
-  message_type: string;
-  recipient_type: 'Buyer' | 'Seller';
-}
-
-// Send a message
-export const sendMessage = async (messageData: SendMessageParams) => {
-  const response = await api.post('/messages/send', messageData);
+export const getCategories = async () => {
+  const response = await api.get('/categories');
   return response.data;
 };
 
-// Get inbox messages
-export const getInbox = async (params?: { limit?: number; offset?: number }) => {
-  const response = await api.get('/messages/inbox', { params });
+export const getCategory = async (id: string) => {
+  const response = await api.get(`/categories/${id}`);
   return response.data;
 };
 
-// Get sent messages
-export const getSent = async (params?: { limit?: number; offset?: number }) => {
-  const response = await api.get('/messages/sent', { params });
+export const createCategory = async (data: any) => {
+  const response = await api.post('/categories', data);
   return response.data;
 };
 
-// Get a specific message
-export const getMessage = async (id: string) => {
-  const response = await api.get(`/messages/${id}`);
+export const updateCategory = async (id: string, data: any) => {
+  const response = await api.put(`/categories/${id}`, data);
   return response.data;
 };
 
-// Mark message as read
+export const deleteCategory = async (id: string) => {
+  const response = await api.delete(`/categories/${id}`);
+  return response.data;
+};
+
+// Message services
+export const getInbox = async () => {
+  const response = await api.get('/messages/inbox');
+  return response.data;
+};
+
+export const getSent = async () => {
+  const response = await api.get('/messages/sent');
+  return response.data;
+};
+
+export const sendMessage = async (data: any) => {
+  const response = await api.post('/messages/send', data);
+  return response.data;
+};
+
 export const markAsRead = async (id: string) => {
   const response = await api.put(`/messages/${id}/read`);
   return response.data;
 };
 
-// Get unread message count
 export const getUnreadCount = async () => {
   const response = await api.get('/messages/unread/count');
+  return response.data;
+};
+
+// Get conversation with a participant
+export const getConversation = async (participant_id: string, participant_type: 'Buyer' | 'Seller') => {
+  const response = await api.get(`/messages/conversation/${participant_id}/${participant_type}`);
   return response.data;
 };

@@ -56,6 +56,7 @@ const io = new Server(server, {
 
 // Store connected users
 const connectedUsers = new Map();
+const userRooms = new Map(); // Track which rooms users are in
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -65,12 +66,39 @@ io.on('connection', (socket) => {
   socket.on('register_user', (userId) => {
     connectedUsers.set(userId, socket.id);
     console.log(`User ${userId} registered with socket ${socket.id}`);
+    
+    // Broadcast to all clients that user is online
+    socket.broadcast.emit('user_status_changed', {
+      userId,
+      status: 'online'
+    });
   });
   
   // Join room
   socket.on('join_room', (roomId) => {
     socket.join(roomId);
     console.log(`Socket ${socket.id} joined room ${roomId}`);
+    
+    // Track which rooms this user is in
+    const userId = getUserIdBySocketId(socket.id);
+    if (userId) {
+      if (!userRooms.has(userId)) {
+        userRooms.set(userId, new Set());
+      }
+      userRooms.get(userId).add(roomId);
+    }
+  });
+  
+  // Leave room
+  socket.on('leave_room', (roomId) => {
+    socket.leave(roomId);
+    console.log(`Socket ${socket.id} left room ${roomId}`);
+    
+    // Remove room from user's tracked rooms
+    const userId = getUserIdBySocketId(socket.id);
+    if (userId && userRooms.has(userId)) {
+      userRooms.get(userId).delete(roomId);
+    }
   });
   
   // Send message
@@ -88,6 +116,12 @@ io.on('connection', (socket) => {
     if (data.room_id) {
       socket.to(data.room_id).emit('new_message', data);
     }
+    
+    // Broadcast to sender that message was delivered
+    socket.emit('message_delivered', {
+      messageId: data.id,
+      timestamp: new Date()
+    });
   });
   
   // Typing indicator
@@ -96,7 +130,38 @@ io.on('connection', (socket) => {
     if (recipientSocketId) {
       socket.to(recipientSocketId).emit('user_typing', {
         sender_id: data.sender_id,
-        is_typing: data.is_typing
+        is_typing: data.is_typing,
+        conversation_id: data.conversation_id
+      });
+    }
+  });
+  
+  // Read receipt
+  socket.on('mark_as_read', (data) => {
+    const recipientSocketId = connectedUsers.get(data.recipient_id);
+    if (recipientSocketId) {
+      socket.to(recipientSocketId).emit('message_read', {
+        message_id: data.message_id,
+        reader_id: data.reader_id,
+        timestamp: new Date()
+      });
+    }
+  });
+  
+  // Online users request
+  socket.on('request_online_users', () => {
+    const onlineUsers = Array.from(connectedUsers.keys());
+    socket.emit('online_users', onlineUsers);
+  });
+  
+  // User status update
+  socket.on('update_status', (data) => {
+    const userId = getUserIdBySocketId(socket.id);
+    if (userId) {
+      // Broadcast status change to all connected users
+      socket.broadcast.emit('user_status_changed', {
+        userId,
+        status: data.status
       });
     }
   });
@@ -105,14 +170,37 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     // Remove user from connected users
+    let userIdToRemove = null;
     for (let [userId, socketId] of connectedUsers.entries()) {
       if (socketId === socket.id) {
+        userIdToRemove = userId;
         connectedUsers.delete(userId);
         break;
       }
     }
+    
+    // Remove user from rooms
+    if (userIdToRemove) {
+      userRooms.delete(userIdToRemove);
+      
+      // Broadcast that user went offline
+      socket.broadcast.emit('user_status_changed', {
+        userId: userIdToRemove,
+        status: 'offline'
+      });
+    }
   });
 });
+
+// Helper function to get user ID by socket ID
+function getUserIdBySocketId(socketId) {
+  for (let [userId, sid] of connectedUsers.entries()) {
+    if (sid === socketId) {
+      return userId;
+    }
+  }
+  return null;
+}
 
 // CORS configuration
 app.use(cors({

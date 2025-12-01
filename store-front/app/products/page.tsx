@@ -119,7 +119,7 @@ export default function ProductsPage() {
                 >
                   <option value="">All Categories</option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <option key={category._id} value={category._id}>
                       {category.name}
                     </option>
                   ))}
@@ -214,8 +214,8 @@ export default function ProductsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {products.map((product) => (
                   <Link
-                    key={product.id}
-                    href={`/products/${product.id}`}
+                    key={product._id}
+                    href={`/products/${product._id}`}
                     className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
                   >
                     <div className="aspect-square bg-gray-200 overflow-hidden">
@@ -261,8 +261,8 @@ export default function ProductsPage() {
               <div className="space-y-4 mb-8">
                 {products.map((product) => (
                   <Link
-                    key={product.id}
-                    href={`/products/${product.id}`}
+                    key={product._id}
+                    href={`/products/${product._id}`}
                     className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden flex group"
                   >
                     <div className="w-48 h-48 bg-gray-200 flex-shrink-0">

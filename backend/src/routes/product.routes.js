@@ -8,7 +8,8 @@ import {
   getSellerProducts,
   addProductImages,
   requestCategoryChange,
-  adminChangeCategories
+  adminChangeCategories,
+  trackProductView
 } from "../controllers/product.controller.js";
 import upload from "../middleware/multer.js";
 import { protectUniversal, requireRole, protectSeller, protectAdmin } from "../middleware/auth.middleware.js";
@@ -26,6 +27,7 @@ router.post("/:id/request-category-change", protectUniversal, protectSeller, req
 // Public
 router.get("/", getAllProducts);
 router.get("/:id", getProductById);
+router.post("/:id/view", trackProductView);
 
 // Admin forced category update
 router.put("/:id/admin/categories", protectUniversal, protectAdmin, adminChangeCategories);

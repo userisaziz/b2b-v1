@@ -309,12 +309,80 @@ export const deleteProduct = async (req, res) => {
 // ======================================================
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find()
+    // Extract query parameters
+    const { 
+      category, 
+      seller_id, 
+      search, 
+      min_price, 
+      max_price,
+      page = 1, 
+      limit = 20 
+    } = req.query;
+    
+    // Build query object
+    let query = {};
+    
+    // Add category filter if provided
+    if (category) {
+      // Check if category is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        query.categories = category;
+      } else {
+        // If not ObjectId, try to find category by slug
+        const categoryDoc = await Category.findOne({ slug: category });
+        if (categoryDoc) {
+          query.categories = categoryDoc._id;
+        }
+      }
+    }
+    
+    // Add seller filter if provided
+    if (seller_id) {
+      query.sellerId = seller_id;
+    }
+    
+    // Add price range filters
+    if (min_price || max_price) {
+      query.price = {};
+      if (min_price) query.price.$gte = parseFloat(min_price);
+      if (max_price) query.price.$lte = parseFloat(max_price);
+    }
+    
+    // Add search filter
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { brand: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Calculate pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Execute query with pagination
+    const products = await Product.find(query)
       .populate("categories")
       .populate("sellerId", "name email companyName")
-      .sort({ createdAt: -1 });
-
-    res.json(products);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+      
+    // Get total count for pagination
+    const total = await Product.countDocuments(query);
+    
+    res.json({
+      data: products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (err) {
     console.error("Get all products error:", err);
     res.status(500).json({ message: "Server error" });
@@ -326,15 +394,24 @@ export const getAllProducts = async (req, res) => {
 // ======================================================
 export const getProductById = async (req, res) => {
   try {
+    // Validate the ID format
+    if (!req.params.id || req.params.id === 'undefined') {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+    
     const product = await Product.findById(req.params.id)
       .populate("categories")
       .populate("sellerId", "name email");
 
-    if (!product) return res.status(404).json({ message: "Not found" });
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
     res.json(product);
   } catch (err) {
     console.error("Get product error:", err);
+    // Handle invalid ObjectId format
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: "Invalid product ID format" });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -344,15 +421,76 @@ export const getProductById = async (req, res) => {
 // ======================================================
 export const getSellerProducts = async (req, res) => {
   try {
-    const products = await Product.find({ sellerId: req.user._id })
+    // Extract query parameters
+    const { 
+      category, 
+      search, 
+      min_price, 
+      max_price,
+      page = 1, 
+      limit = 20,
+      sort = '-createdAt'
+    } = req.query;
+    
+    // Build query object with seller filter
+    let query = { sellerId: req.user._id };
+    
+    // Add category filter if provided
+    if (category) {
+      // Check if category is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        query.categories = category;
+      } else {
+        // If not ObjectId, try to find category by slug
+        const categoryDoc = await Category.findOne({ slug: category });
+        if (categoryDoc) {
+          query.categories = categoryDoc._id;
+        }
+      }
+    }
+    
+    // Add price range filters
+    if (min_price || max_price) {
+      query.price = {};
+      if (min_price) query.price.$gte = parseFloat(min_price);
+      if (max_price) query.price.$lte = parseFloat(max_price);
+    }
+    
+    // Add search filter
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { brand: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Calculate pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Execute query with pagination
+    const products = await Product.find(query)
       .populate("categories")
       .populate("sellerId", "name email companyName")
-      .sort({ createdAt: -1 });
-
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+      
+    // Get total count for pagination
+    const total = await Product.countDocuments(query);
+    
     res.json({
       success: true,
       count: products.length,
-      products
+      products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
     });
   } catch (err) {
     console.error("Get seller products error:", err);
@@ -489,5 +627,30 @@ export const addProductImages = async (req, res) => {
   } catch (err) {
     console.error("Add product images error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ======================================================
+// TRACK PRODUCT VIEW
+// ======================================================
+export const trackProductView = async (req, res) => {
+  try {
+    // Simply return success for now - in a real implementation, you might want to:
+    // 1. Store view count in the product document
+    // 2. Store view events for analytics
+    // 3. Track user viewing patterns
+    
+    // For now, we'll just acknowledge the request
+    res.status(200).json({ 
+      success: true, 
+      message: "Product view tracked" 
+    });
+  } catch (err) {
+    console.error("Track product view error:", err);
+    // Don't fail the request if tracking fails
+    res.status(200).json({ 
+      success: true, 
+      message: "Product view tracked" 
+    });
   }
 };
