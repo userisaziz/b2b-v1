@@ -115,7 +115,28 @@ export const getCategoryById = async (id: string): Promise<Category> => {
 export const getCategoryBySlug = async (slug: string): Promise<Category> => {
   try {
     console.log('Fetching category by slug:', slug);
-    const response = await apiClient.get(`/categories/slug/${slug}`);
+    
+    // Check if the slug looks like an ID (MongoDB ObjectId format)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+    
+    let response;
+    if (isObjectId) {
+      // If it looks like an ID, try fetching by ID first
+      try {
+        response = await apiClient.get(`/categories/${slug}`);
+      } catch (idError: any) {
+        // If ID fetch fails, fall back to slug fetch
+        if (idError.response?.status === 404) {
+          response = await apiClient.get(`/categories/slug/${slug}`);
+        } else {
+          throw idError;
+        }
+      }
+    } else {
+      // Otherwise, fetch by slug
+      response = await apiClient.get(`/categories/slug/${slug}`);
+    }
+    
     console.log('API response for category:', response.data);
     const category = response.data;
     
@@ -139,7 +160,27 @@ export const getCategoryBySlug = async (slug: string): Promise<Category> => {
 // Get category by slug with products
 export const getCategoryBySlugWithProducts = async (slug: string): Promise<any> => {
   try {
-    const response = await apiClient.get(`/categories/slug/${slug}/products`);
+    // Check if the slug looks like an ID (MongoDB ObjectId format)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+    
+    let response;
+    if (isObjectId) {
+      // If it looks like an ID, try fetching by ID first
+      try {
+        response = await apiClient.get(`/categories/${slug}/products`);
+      } catch (idError: any) {
+        // If ID fetch fails, fall back to slug fetch
+        if (idError.response?.status === 404) {
+          response = await apiClient.get(`/categories/slug/${slug}/products`);
+        } else {
+          throw idError;
+        }
+      }
+    } else {
+      // Otherwise, fetch by slug
+      response = await apiClient.get(`/categories/slug/${slug}/products`);
+    }
+    
     return response.data;
   } catch (error: any) {
     throw error.response?.data || { message: 'An error occurred while fetching the category with products' };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ArrowRight, TrendingUp, ShieldCheck, Globe, FileText, Package, ChevronRight } from "lucide-react";
+import { Search, ArrowRight, TrendingUp, ShieldCheck, Globe, FileText, Package, ChevronRight, Grid3x3, Layers } from "lucide-react";
 import Link from "next/link";
 import { getProducts, getCategories, Category, Product } from "@/lib/storefront";
 import StorefrontLayout from "@/components/layout/StorefrontLayout";
@@ -15,6 +15,7 @@ export default function StorefrontHomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryProducts, setCategoryProducts] = useState<Record<string, Product[]>>({});
+  const [categoryHierarchy, setCategoryHierarchy] = useState<Record<string, Category[]>>({});
 
   // Load categories and featured products once on mount
   useEffect(() => {
@@ -26,6 +27,25 @@ export default function StorefrontHomePage() {
         const categoriesData = await getCategories();
         setCategories(categoriesData);
         
+        // Build category hierarchy
+        const hierarchy: Record<string, Category[]> = {};
+        const rootCategories: Category[] = [];
+        
+        // Separate root categories and build parent-child relationships
+        categoriesData.forEach(category => {
+          if (!category.parent_id) {
+            rootCategories.push(category);
+          }
+        });
+        
+        // For each root category, find its subcategories
+        rootCategories.forEach(rootCat => {
+          const subcategories = categoriesData.filter(cat => cat.parent_id === rootCat._id);
+          hierarchy[rootCat._id] = subcategories;
+        });
+        
+        setCategoryHierarchy(hierarchy);
+        
         // Load featured products (limit to 20)
         const productsData = await getProducts({ limit: 20 });
         setProducts(productsData.data);
@@ -35,13 +55,13 @@ export default function StorefrontHomePage() {
         for (const category of categoriesData) { // Load for all categories
           try {
             const categoryProducts = await getProducts({ 
-              category: category.id, 
+              category: category._id, 
               limit: 20 
             });
-            categoryProductsData[category.id] = categoryProducts.data;
+            categoryProductsData[category._id] = categoryProducts.data;
           } catch (error) {
-            console.error(`Error loading products for category ${category.id}:`, error);
-            categoryProductsData[category.id] = [];
+            console.error(`Error loading products for category ${category._id}:`, error);
+            categoryProductsData[category._id] = [];
           }
         }
         setCategoryProducts(categoryProductsData);
@@ -77,6 +97,126 @@ export default function StorefrontHomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Search term is already in state, useEffect will handle the reload
+  };
+
+  // Bento Grid Component for Categories and Subcategories
+  const BentoGridSection = () => {
+    if (loading) {
+      return (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-3xl font-bold text-slate-900">Explore Categories</h2>
+            <div className="h-4 bg-slate-200 rounded w-32 animate-pulse"></div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-sm animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, j) => (
+                    <div key={j} className="h-4 bg-slate-200 rounded w-full"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    // Get first 4 root categories for the bento grid
+    const rootCategories = categories.filter(cat => !cat.parent_id).slice(0, 4);
+    
+    if (rootCategories.length === 0) return null;
+
+    return (
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex justify-between items-center mb-10">
+          <h2 className="text-3xl font-bold text-slate-900">Explore Categories</h2>
+          <Link 
+            href="/categories" 
+            className="text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 group"
+          >
+            View All Categories
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {rootCategories.map((category, index) => {
+            const subcategories = categoryHierarchy[category._id] || [];
+            const hasSubcategories = subcategories.length > 0;
+            
+            return (
+              <div 
+                key={category._id} 
+                className={`bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
+                  index === 0 ? 'md:col-span-2 md:row-span-2' : ''
+                }`}
+              >
+                <Link href={`/categories/${category._id}`} className="block h-full">
+                  <div className={`p-6 ${index === 0 ? 'pb-4' : ''}`}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                          <Grid3x3 className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {category.name}
+                        </h3>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                    </div>
+                    
+                    {category.description && (
+                      <p className="text-sm text-slate-500 mb-4 line-clamp-2">
+                        {category.description}
+                      </p>
+                    )}
+                    
+                    {category.productCount !== undefined && category.productCount > 0 && (
+                      <div className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full mb-4">
+                        <Package className="h-3 w-3" />
+                        {category.productCount} products
+                      </div>
+                    )}
+                    
+                    {hasSubcategories && (
+                      <div className={`mt-4 pt-4 border-t border-slate-100 ${index === 0 ? '' : 'hidden md:block'}`}>
+                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <Layers className="h-3 w-3" />
+                          Subcategories
+                        </h4>
+                        <div className={`space-y-2 ${index === 0 ? '' : 'hidden md:block'}`}>
+                          {subcategories.slice(0, index === 0 ? 5 : 3).map((subcat) => (
+                            <div key={subcat._id} className="flex items-center justify-between group/subcat">
+                              <span className="text-sm text-slate-700 group-hover/subcat:text-blue-600 transition-colors">
+                                {subcat.name}
+                              </span>
+                              {subcat.productCount !== undefined && subcat.productCount > 0 && (
+                                <span className="text-xs text-slate-400">
+                                  {subcat.productCount}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          {subcategories.length > (index === 0 ? 5 : 3) && (
+                            <div className="text-xs text-blue-600 font-medium">
+                              +{subcategories.length - (index === 0 ? 5 : 3)} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -166,6 +306,9 @@ export default function StorefrontHomePage() {
         <HomepageRFQForm />
       </section>
 
+      {/* Bento Grid Section for Categories and Subcategories */}
+      <BentoGridSection />
+
       {/* All Categories Grid - Alibaba Style */}
       <section className="bg-white border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -193,8 +336,8 @@ export default function StorefrontHomePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {categories.map((category) => (
                 <Link
-                  key={category.id}
-                  href={`/categories/${category.id}`}
+                  key={category._id}
+                  href={`/categories/${category._id}`}
                   className="group bg-white rounded-xl p-6 border border-slate-100 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-200 flex flex-col items-center text-center group"
                 >
                   <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
@@ -224,20 +367,20 @@ export default function StorefrontHomePage() {
       </section>
 
       {/* Category-specific Product Sections */}
-      {Object.entries(categoryProducts).map(([categoryId, products]) => {
-        const category = categories.find(c => c.id === categoryId);
+      {Object.entries(categoryProducts).map(([category_id, products]) => {
+        const category = categories.find(c => c._id === category_id);
         if (!category || products.length === 0) return null;
         
-        // Filter out products with undefined IDs
-        const validProducts = products.filter(product => product.id && product.id !== 'undefined');
-        if (validProducts.length === 0) return null;
+        // Filter out products with undefined _ids
+        const val_idProducts = products.filter(product => product._id && product._id !== 'undefined');
+        if (val_idProducts.length === 0) return null;
         
         return (
-          <section key={categoryId} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <section key={category_id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-3xl font-bold text-slate-900">{category.name}</h2>
               <Link 
-                href={`/categories/${categoryId}`} 
+                href={`/categories/${category_id}`} 
                 className="text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 group"
               >
                 View All {category.name} Products
@@ -246,10 +389,10 @@ export default function StorefrontHomePage() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {validProducts.slice(0, 8).map((product) => (
+              {val_idProducts.slice(0, 8).map((product) => (
                 <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
+                  key={product._id}
+                  href={`/products/${product._id}`}
                   className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full"
                 >
                   <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
@@ -320,9 +463,9 @@ export default function StorefrontHomePage() {
             </button>
             {categories.map((category) => (
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === category.id
+                key={category._id}
+                onClick={() => setSelectedCategory(category._id)}
+                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === category._id
                     ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
                   }`}
@@ -337,7 +480,7 @@ export default function StorefrontHomePage() {
       {/* Featured Products Slider */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <ProductSlider 
-          products={products} 
+          products={products.map(product => ({ ...product, id: product._id }))}
           title="Featured Products" 
         />
       </section>
@@ -375,11 +518,11 @@ export default function StorefrontHomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {/* Filter out products with undefined IDs */}
-              {products.filter(product => product.id && product.id !== 'undefined').map((product) => (
+              {/* Filter out products with undefined _ids */}
+              {products.filter(product => product._id && product._id !== 'undefined').map((product) => (
                 <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
+                  key={product._id}
+                  href={`/products/${product._id}`}
                   className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full"
                 >
                   <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">

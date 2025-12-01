@@ -9,7 +9,8 @@ import {
     Menu, 
     X, 
     ChevronsLeft, 
-    LogOut 
+    LogOut, 
+    MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,11 @@ const navigationItems: NavigationItem[] = [
         href: "/dashboard/rfqs",
         icon: FileText,
     },
+    {
+        title:"Messages",
+        href: "/dashboard/messages",
+        icon: MessageCircle ,
+    }
 ];
 
 export default function Sidebar() {

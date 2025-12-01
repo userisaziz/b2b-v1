@@ -12,12 +12,17 @@ import rfqRoutes from "./routes/rfq.routes.js";
 import universalRoutes from "./routes/universal.routes.js";
 import categoryRequestRoutes from "./routes/categoryRequest.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import testRoutes from "./routes/test.routes.js";
 
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+
+// Import our new logging utilities
+import logger from './utils/logger.js';
+import httpLogger from './middleware/httpLogger.js';
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
@@ -26,15 +31,14 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 const result = dotenv.config({ path: path.resolve(__dirname, '../.env') });
 if (result.error) {
-  console.error('Error loading .env file:', result.error);
+  logger.error('Error loading .env file:', result.error);
 } else {
-  console.log('.env file loaded successfully');
+  logger.info('.env file loaded successfully');
 }
-console.log("Environment variables loaded:");
-console.log("MONGO_URI:", process.env.MONGO_URI);
-console.log("PORT:", process.env.PORT);
 
-connectDB();
+logger.info("Environment variables loaded:");
+logger.info("MONGO_URI:", process.env.MONGO_URI ? "****" : "Not set");
+logger.info("PORT:", process.env.PORT || 5000);
 
 const app = express();
 
@@ -60,12 +64,12 @@ const userRooms = new Map(); // Track which rooms users are in
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  logger.info('📱 User connected:', socket.id);
   
   // Register user
   socket.on('register_user', (userId) => {
     connectedUsers.set(userId, socket.id);
-    console.log(`User ${userId} registered with socket ${socket.id}`);
+    logger.info(`👤 User ${userId} registered with socket ${socket.id}`);
     
     // Broadcast to all clients that user is online
     socket.broadcast.emit('user_status_changed', {
@@ -77,7 +81,7 @@ io.on('connection', (socket) => {
   // Join room
   socket.on('join_room', (roomId) => {
     socket.join(roomId);
-    console.log(`Socket ${socket.id} joined room ${roomId}`);
+    logger.info(`🚪 Socket ${socket.id} joined room ${roomId}`);
     
     // Track which rooms this user is in
     const userId = getUserIdBySocketId(socket.id);
@@ -92,7 +96,7 @@ io.on('connection', (socket) => {
   // Leave room
   socket.on('leave_room', (roomId) => {
     socket.leave(roomId);
-    console.log(`Socket ${socket.id} left room ${roomId}`);
+    logger.info(`🚪 Socket ${socket.id} left room ${roomId}`);
     
     // Remove room from user's tracked rooms
     const userId = getUserIdBySocketId(socket.id);
@@ -103,13 +107,13 @@ io.on('connection', (socket) => {
   
   // Send message
   socket.on('send_message', (data) => {
-    console.log('Received message:', data);
+    logger.debug('✉️ Received message:', data);
     
     // Emit to recipient if online
     const recipientSocketId = connectedUsers.get(data.recipient_id);
     if (recipientSocketId) {
       socket.to(recipientSocketId).emit('new_message', data);
-      console.log(`Message forwarded to recipient ${data.recipient_id}`);
+      logger.info(`📤 Message forwarded to recipient ${data.recipient_id}`);
     }
     
     // Also emit to the room if applicable
@@ -168,7 +172,7 @@ io.on('connection', (socket) => {
   
   // Disconnect
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    logger.info('📴 User disconnected:', socket.id);
     // Remove user from connected users
     let userIdToRemove = null;
     for (let [userId, socketId] of connectedUsers.entries()) {
@@ -215,18 +219,8 @@ app.use(cors({
   credentials: true
 }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - IP: ${req.ip}`);
-  
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Status: ${res.statusCode} - Duration: ${duration}ms`);
-  });
-  
-  next();
-});
+// HTTP request logging middleware
+app.use(httpLogger);
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -234,7 +228,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes with logging
 app.use("/api/auth", (req, res, next) => {
-  console.log(`[ROUTE] /api/auth - ${req.method} request`);
+  logger.info(`[ROUTE] /api/auth - ${req.method} request`);
   next();
 }, authRoutes);
 
@@ -248,21 +242,37 @@ app.use('/api/rfqs', rfqRoutes)
 app.use('/api/universal', universalRoutes)
 app.use('/api/category-requests', categoryRequestRoutes)
 app.use('/api/messages', messageRoutes)
+app.use('/api/test', testRoutes)
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ERROR:`, err.stack);
+  logger.error('🚨 Unhandled error:', err, {
+    url: req.url,
+    method: req.method,
+    headers: req.headers,
+    body: req.body,
+    query: req.query
+  });
   res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📡 Socket.IO server is running on port ${PORT}`);
-  console.log(`📡 CORS enabled for multiple origins`);
+// Connect to database and start server
+connectDB().then(() => {
+  logger.info('✅ Database connected successfully');
+  
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    logger.info(`🚀 Server is running on port ${PORT}`);
+    logger.info(`📡 Socket.IO server is running on port ${PORT}`);
+    logger.info(`🌐 CORS enabled for multiple origins`);
+    logger.info(`📅 ${new Date().toISOString()}`);
+  });
+}).catch((err) => {
+  logger.error('❌ Failed to start server due to database connection error:', err);
+  process.exit(1);
 });
 
 export default app;

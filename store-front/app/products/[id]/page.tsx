@@ -10,30 +10,32 @@ import {
   MapPin, 
   Package, 
   Shield,
-  Star
+  Star,
+  ShoppingCart,
+  Heart,
+  Share2,
+  Tag,
+  Truck,
+  RotateCcw,
+  CheckCircle,
+  ChevronRight,
+  Home,
+  ChevronDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Modal } from "@/components/ui/modal";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { getProductById, Product, trackProductView, trackCatalogueView } from "@/lib/storefront";
-import { getCurrentUser } from "@/lib/auth";
-import { sendMessage } from "@/lib/storefront";
 import StorefrontLayout from "@/components/layout/StorefrontLayout";
+import { getProductById, Product } from "@/lib/storefront";
+import { getCurrentUser } from "@/lib/auth";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [messageModalOpen, setMessageModalOpen] = useState(false);
-  const [messageForm, setMessageForm] = useState({ subject: "", message: "" });
-  const [sending, setSending] = useState(false);
-  const [sendMessageSuccess, setSendMessageSuccess] = useState(false);
-  const [sendMessageError, setSendMessageError] = useState("");
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const user = getCurrentUser();
 
   useEffect(() => {
@@ -50,14 +52,6 @@ export default function ProductDetailPage() {
       }
       const data = await getProductById(params.id as string);
       setProduct(data);
-      
-      // Track product view and catalogue view for authenticated users
-      if (user) {
-        trackProductView(params.id as string);
-        if (data.seller_id) {
-          trackCatalogueView(data.seller_id);
-        }
-      }
     } catch (error) {
       console.error("Error loading product:", error);
     } finally {
@@ -65,298 +59,397 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      router.push("/login?redirect=/products/" + params.id);
-      return;
-    }
-
-    // Reset previous messages
-    setSendMessageSuccess(false);
-    setSendMessageError("");
-    
-    // Validate form
-    if (!messageForm.message.trim()) {
-      setSendMessageError("Please enter a message");
-      return;
-    }
-
-    try {
-      setSending(true);
-      await sendMessage({
-        recipient_id: product!.seller_id,
-        subject: messageForm.subject || `Inquiry about ${product!.name}`,
-        message: messageForm.message,
-        message_type: "product_inquiry",
-        recipient_type: "Seller" // Explicitly set recipient type
-      });
-      
-      setSendMessageSuccess(true);
-      setMessageForm({ subject: "", message: "" });
-      
-      // Close modal after 3 seconds
-      setTimeout(() => {
-        setMessageModalOpen(false);
-        setSendMessageSuccess(false);
-      }, 3000);
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Failed to send message. Please try again.";
-      setSendMessageError(errorMessage);
-    } finally {
-      setSending(false);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+      <StorefrontLayout>
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="h-96 bg-gray-200 rounded"></div>
+                <div className="space-y-4">
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-12 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </StorefrontLayout>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h1>
-          <Link href="/">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+      <StorefrontLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h1>
+            <Link href="/">
+              <Button>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      </StorefrontLayout>
     );
   }
+
+  // Breadcrumb component
+  const Breadcrumb = () => (
+    <div className="flex items-center text-sm text-gray-500 mb-6">
+      <Link href="/" className="hover:text-blue-600">Home</Link>
+      <ChevronRight className="h-4 w-4 mx-2" />
+      {product.category && (
+        <>
+          <Link href={`/categories/${product.category.id}`} className="hover:text-blue-600">
+            {product.category.name}
+          </Link>
+          <ChevronRight className="h-4 w-4 mx-2" />
+        </>
+      )}
+      <span className="text-gray-900 truncate max-w-xs">{product.name}</span>
+    </div>
+  );
+
+  // Image gallery component
+  const ImageGallery = () => (
+    <div className="space-y-4">
+      {/* Main image */}
+      <div className="aspect-square bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+        {product.images && product.images.length > 0 ? (
+          <img 
+            src={product.images[selectedImage]} 
+            alt={product.name}
+            className="w-full h-full object-contain p-4"
+          />
+        ) : (
+          <Package className="h-24 w-24 text-gray-400" />
+        )}
+      </div>
+      
+      {/* Thumbnail images */}
+      {product.images && product.images.length > 1 && (
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {product.images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedImage(index)}
+              className={`flex-shrink-0 w-20 h-20 rounded-md border-2 overflow-hidden ${
+                selectedImage === index ? 'border-blue-500' : 'border-gray-200'
+              }`}
+            >
+              <img 
+                src={image} 
+                alt={`${product.name} ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Product info component
+  const ProductInfo = () => (
+    <div className="space-y-6">
+      {/* Product title and rating */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <span className="ml-2 text-sm text-gray-600">(0 reviews)</span>
+          </div>
+          <Badge variant="secondary">SKU: {product.sku || 'N/A'}</Badge>
+        </div>
+      </div>
+
+      {/* Price and stock info */}
+      <div className="bg-blue-50 rounded-lg p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-gray-600">Price</p>
+            <p className="text-3xl font-bold text-blue-600">
+              ₹{product.price?.toLocaleString() || 'N/A'}
+            </p>
+            {product.min_order_quantity && (
+              <p className="text-sm text-gray-600">
+                Min. Order: {product.min_order_quantity} units
+              </p>
+            )}
+          </div>
+          
+          <div className="text-right">
+            <p className="text-sm text-gray-600">In Stock</p>
+            <p className="text-2xl font-bold text-green-600">
+              {product.stock?.toLocaleString() || 0} units
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quantity selector */}
+      <div className="flex items-center gap-4">
+        <span className="text-gray-700 font-medium">Quantity:</span>
+        <div className="flex items-center border border-gray-300 rounded-md">
+          <button 
+            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            className="px-3 py-2 text-gray-600 hover:bg-gray-100"
+          >
+            -
+          </button>
+          <input
+            type="number"
+            min="1"
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-16 text-center border-x border-gray-300 py-2"
+          />
+          <button 
+            onClick={() => setQuantity(quantity + 1)}
+            className="px-3 py-2 text-gray-600 hover:bg-gray-100"
+          >
+            +
+          </button>
+        </div>
+        <span className="text-gray-600">units</span>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-3">
+        <Button className="flex-1 min-w-[150px]">
+          <ShoppingCart className="h-5 w-5 mr-2" />
+          Add to Cart
+        </Button>
+        <Button variant="outline" size="icon">
+          <Heart className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" size="icon">
+          <Share2 className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Product specifications
+  const ProductSpecifications = () => {
+    // Convert specifications to array for display
+    const specsArray = product.specifications ? Object.entries(product.specifications) : [];
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Product Specifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {specsArray.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {specsArray.map(([key, value], index) => (
+                <div key={index} className="border-b border-gray-100 pb-3 last:border-0">
+                  <dt className="text-sm font-medium text-gray-600 capitalize">{key}</dt>
+                  <dd className="text-gray-900 mt-1">{String(value)}</dd>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No specifications available for this product.</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Shipping and returns
+  const ShippingInfo = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Truck className="h-5 w-5" />
+          Shipping & Returns
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-start gap-3">
+          <Truck className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="font-medium">Free Shipping</p>
+            <p className="text-sm text-gray-600">For orders over ₹5000</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <RotateCcw className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="font-medium">Easy Returns</p>
+            <p className="text-sm text-gray-600">30-day return policy</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="font-medium">Quality Guaranteed</p>
+            <p className="text-sm text-gray-600">100% authentic products</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Seller info
+  const SellerInfo = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Building2 className="h-5 w-5" />
+          Seller Information
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="font-semibold text-gray-900">
+            {product.users?.company || product.users?.name || "Company Name"}
+          </p>
+          <p className="text-sm text-gray-600">{product.users?.email}</p>
+          {product.users?.phone && (
+            <p className="text-sm text-gray-600">{product.users.phone}</p>
+          )}
+        </div>
+
+        <div className="pt-4 border-t space-y-3">
+          <Button 
+            className="w-full"
+            onClick={() => {
+              if (!user) {
+                router.push("/login?redirect=/products/" + params.id);
+              } else {
+                // Redirect to messages page with seller ID
+                router.push(`/messages?to=${product.seller_id}&subject=Inquiry about ${encodeURIComponent(product.name)}`);
+              }
+            }}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Contact Seller
+          </Button>
+          
+          {user && (
+            <Link href="/rfq" className="block">
+              <Button variant="outline" className="w-full">
+                Request Quote (RFQ)
+              </Button>
+            </Link>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Trust badges
+  const TrustBadges = () => (
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 text-sm">
+            <Shield className="h-5 w-5 text-green-600" />
+            <span>Verified Seller</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <Star className="h-5 w-5 text-yellow-500" />
+            <span>Quality Assured</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <Truck className="h-5 w-5 text-blue-600" />
+            <span>Fast Delivery</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <span>100% Authentic</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <StorefrontLayout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Breadcrumb */}
+          <Breadcrumb />
+          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Product Info */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  {/* Product Images */}
-                  <div className="aspect-video bg-gray-200 rounded-lg mb-6 flex items-center justify-center">
-                    {product.images && product.images.length > 0 ? (
-                      <img 
-                        src={product.images[0]} 
-                        alt={product.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <Package className="h-24 w-24 text-gray-400" />
-                    )}
-                  </div>
-
-                  {/* Product Title & Price */}
-                  <div className="space-y-4">
-                    <div>
-                      <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="default">{product.status}</Badge>
-                        <span className="text-sm text-gray-600">
-                          Stock: {product.stock} units
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-3xl font-bold text-blue-600">
-                        ₹{product.price.toFixed(2)}
-                      </span>
-                      <span className="text-gray-600 ml-2">
-                        (Min. Order: {product.min_order_quantity} units)
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Description */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Product Description</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 whitespace-pre-wrap">
-                    {product.description}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Specifications */}
-              {product.specifications && Object.keys(product.specifications).length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Specifications</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.entries(product.specifications).map(([key, value]) => (
-                        <div key={key} className="border-b pb-2">
-                          <dt className="text-sm font-medium text-gray-600">{key}</dt>
-                          <dd className="text-gray-900">{value as string}</dd>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            {/* Product Images */}
+            <div className="lg:col-span-1">
+              <ImageGallery />
             </div>
-
+            
+            {/* Product Info */}
+            <div className="lg:col-span-1">
+              <ProductInfo />
+            </div>
+            
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Seller Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Seller Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {product.users?.company || product.users?.name || "Company Name"}
-                    </p>
-                    <p className="text-sm text-gray-600">{product.users?.email}</p>
-                    {product.users?.phone && (
-                      <p className="text-sm text-gray-600">{product.users.phone}</p>
-                    )}
-                  </div>
-
-                  <div className="pt-4 border-t space-y-2">
-                    <Button 
-                      className="w-full"
-                      onClick={() => {
-                        if (!user) {
-                          router.push("/login?redirect=/products/" + params.id);
-                        } else {
-                          setMessageModalOpen(true);
-                        }
-                      }}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Contact Seller
-                    </Button>
-                    
-                    {user && (
-                      <Link href="/rfq" className="block">
-                        <Button variant="outline" className="w-full">
-                          Request Quote (RFQ)
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Trust Badges */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Shield className="h-5 w-5 text-green-600" />
-                      <span>Verified Seller</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Star className="h-5 w-5 text-yellow-500" />
-                      <span>Quality Assured</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-5 w-5 text-blue-600" />
-                      <span>Fast Delivery</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <SellerInfo />
+              <ShippingInfo />
+              <TrustBadges />
             </div>
           </div>
+          
+          {/* Product Description and Specifications */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+            {/* Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose max-w-none">
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {product.description || "No description available for this product."}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Specifications */}
+            <ProductSpecifications />
+          </div>
+          
+          {/* Category Tags */}
+          {product.category && (
+            <div className="mt-12">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Category Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-sm py-1 px-3">
+                      {product.category.name}
+                    </Badge>
+                    {product.categories && (
+                      <Badge variant="outline" className="text-sm py-1 px-3">
+                        {product.categories.name}
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
-
-        {/* Message Modal */}
-        <Modal
-          open={messageModalOpen}
-          onClose={() => {
-            setMessageModalOpen(false);
-            setSendMessageSuccess(false);
-            setSendMessageError("");
-          }}
-          title="Contact Seller"
-          description={`Send a message to ${product.users?.company || "the seller"} regarding "${product.name}"`}
-        >
-          <form onSubmit={handleSendMessage} className="space-y-4">
-            {sendMessageSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                <p className="font-medium">Message sent successfully!</p>
-                <p className="text-sm">The seller will contact you soon.</p>
-              </div>
-            )}
-            
-            {sendMessageError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                <p>{sendMessageError}</p>
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                placeholder={`Inquiry about ${product.name}`}
-                value={messageForm.subject}
-                onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="message">Message *</Label>
-              <Textarea
-                id="message"
-                placeholder="Enter your message... Please include details like quantity, delivery requirements, etc."
-                required
-                value={messageForm.message}
-                onChange={(e) => setMessageForm({ ...messageForm, message: e.target.value })}
-                rows={5}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" disabled={sending} className="flex-1">
-                {sending ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Sending...
-                  </span>
-                ) : "Send Message"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setMessageModalOpen(false);
-                  setSendMessageSuccess(false);
-                  setSendMessageError("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </Modal>
       </div>
     </StorefrontLayout>
   );

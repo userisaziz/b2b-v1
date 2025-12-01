@@ -13,6 +13,7 @@ export interface Product {
   images: string[];
   specifications: Record<string, any>;
   status: string;
+  sku?: string;
   created_at: string;
   updated_at: string;
   categories?: { name: string };
@@ -77,15 +78,24 @@ export const getProducts = async (params?: {
   // Transform products to ensure consistent properties
   let products = response.data.data || response.data;
   if (Array.isArray(products)) {
-    products = products.map(product => ({
-      ...product,
-      _id: product._id || product.id, // Ensure _id is present
-      id: product.id || product._id, // Ensure id is present
-      seller_id: product.seller_id || product.sellerId,
-      category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
-      min_order_quantity: product.min_order_quantity || 1,
-      specifications: product.specifications || {}
-    }));
+    products = products.map(product => {
+      // Extract seller ID correctly - if sellerId is an object, get its _id, otherwise use as-is
+      let sellerId = product.seller_id || product.sellerId;
+      if (sellerId && typeof sellerId === 'object' && sellerId._id) {
+        sellerId = sellerId._id;
+      }
+      
+      return {
+        ...product,
+        _id: product._id || product.id, // Ensure _id is present
+        id: product.id || product._id, // Ensure id is present
+        seller_id: sellerId,
+        category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
+        min_order_quantity: product.min_order_quantity || 1,
+        sku: product.sku || product.SKU,
+        specifications: product.specifications || {}
+      };
+    });
   }
   
   return {
@@ -105,13 +115,21 @@ export const getProduct = async (id: string): Promise<Product> => {
   
   // Transform product to ensure consistent properties
   const product = response.data;
+  
+  // Extract seller ID correctly - if sellerId is an object, get its _id, otherwise use as-is
+  let sellerId = product.seller_id || product.sellerId;
+  if (sellerId && typeof sellerId === 'object' && sellerId._id) {
+    sellerId = sellerId._id;
+  }
+  
   return {
     ...product,
     _id: product._id || product.id, // Ensure _id is present
     id: product.id || product._id, // Ensure id is present
-    seller_id: product.seller_id || product.sellerId,
+    seller_id: sellerId,
     category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
     min_order_quantity: product.min_order_quantity || 1,
+    sku: product.sku || product.SKU,
     specifications: product.specifications || {}
   };
 };
