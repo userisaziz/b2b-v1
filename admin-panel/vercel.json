@@ -4,11 +4,11 @@
   "routes": [
     {
       "src": "/admin/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|mp4|webm))",
-      "dest": "/admin/$1"
+      "dest": "/dist/$1"
     },
     {
       "src": "/admin/(.*)",
-      "dest": "/admin/index.html"
+      "dest": "/dist/index.html"
     }
   ]
 }

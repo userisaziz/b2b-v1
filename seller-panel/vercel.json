@@ -4,11 +4,11 @@
   "routes": [
     {
       "src": "/seller/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|mp4|webm))",
-      "dest": "/seller/$1"
+      "dest": "/dist/$1"
     },
     {
       "src": "/seller/(.*)",
-      "dest": "/seller/index.html"
+      "dest": "/dist/index.html"
     }
   ]
 }
