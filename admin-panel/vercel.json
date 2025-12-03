@@ -1,14 +1,10 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/admin/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|mp4|webm))",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/admin/(.*)",
-      "dest": "/dist/index.html"
+      "source": "/admin/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

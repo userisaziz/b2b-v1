@@ -17,7 +17,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 function App() {
   return (
     <SidebarProvider>
-      <Router>
+      <Router basename="/seller">
         <Routes>
             <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />

@@ -33,7 +33,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 function App() {
   return (
     <SidebarProvider>
-      <Router>
+      <Router basename="/admin">
         <Routes>
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
