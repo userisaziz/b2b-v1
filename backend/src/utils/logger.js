@@ -2,10 +2,19 @@ import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import util from 'util';
+import fs from 'fs';
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Create logs directory if it doesn't exist (only when not on Vercel)
+if (process.env.VERCEL !== '1') {
+  const logsDir = path.join(__dirname, '../../logs');
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+}
 
 // Define custom log levels
 const levels = {
@@ -80,22 +89,25 @@ const logger = winston.createLogger({
       format: consoleFormat,
     }),
     
-    // File transport for all logs
-    new winston.transports.File({
-      filename: path.join(__dirname, '../../logs/combined.log'),
-      format: fileFormat,
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    
-    // File transport for error logs
-    new winston.transports.File({
-      filename: path.join(__dirname, '../../logs/error.log'),
-      level: 'error',
-      format: fileFormat,
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
+    // Only add file transports if not running on Vercel
+    ...(process.env.VERCEL !== '1' ? [
+      // File transport for all logs
+      new winston.transports.File({
+        filename: path.join(__dirname, '../../logs/combined.log'),
+        format: fileFormat,
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      }),
+      
+      // File transport for error logs
+      new winston.transports.File({
+        filename: path.join(__dirname, '../../logs/error.log'),
+        level: 'error',
+        format: fileFormat,
+        maxsize: 5242880, // 5MB
+        maxFiles: 5,
+      })
+    ] : [])
   ],
 });
 

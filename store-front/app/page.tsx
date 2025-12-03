@@ -9,8 +9,8 @@ import {
 import Link from "next/link";
 import { getProducts, getCategories, Category, Product } from "@/lib/storefront";
 import StorefrontLayout from "@/components/layout/StorefrontLayout";
-import ProductSlider from "@/components/ProductSlider";
 import HomepageRFQForm from "@/components/HomepageRFQForm";
+import CategoryGrid from "@/components/CategoryGrid";
 import { getCurrentUser } from "@/lib/auth";
 
 export default function StorefrontHomePage() {
@@ -361,29 +361,8 @@ export default function StorefrontHomePage() {
       </section>
 
       {/* Categories Grid */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Source by Category</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {categories.slice(0, 10).map((category) => (
-              <Link
-                key={category._id}
-                href={`/categories/${category._id}`}
-                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center group"
-              >
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
-                  {category.image ? (
-                    <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
-                  ) : (
-                    <Package className="h-8 w-8 text-gray-500 group-hover:text-blue-600" />
-                  )}
-                </div>
-                <h3 className="font-medium text-gray-900 group-hover:text-blue-600">{category.name}</h3>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CategoryGrid categories={categories} />
+
     </StorefrontLayout>
   );
 }
