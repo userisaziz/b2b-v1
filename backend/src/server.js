@@ -28,12 +28,14 @@ import httpLogger from './middleware/httpLogger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-const result = dotenv.config({ path: path.resolve(__dirname, '../.env') });
-if (result.error) {
-  logger.error('Error loading .env file:', result.error);
-} else {
-  logger.info('.env file loaded successfully');
+// Load environment variables (only in development/local environments)
+if (process.env.NODE_ENV !== 'production') {
+  const result = dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  if (result.error) {
+    logger.error('Error loading .env file:', result.error);
+  } else {
+    logger.info('.env file loaded successfully');
+  }
 }
 
 logger.info("Environment variables loaded:");
