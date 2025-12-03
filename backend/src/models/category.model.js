@@ -67,7 +67,6 @@ const categorySchema = new Schema({
 });
 
 // Indexes
-categorySchema.index({ slug: 1 });
 categorySchema.index({ parentId: 1 });
 categorySchema.index({ path: 1 });
 categorySchema.index({ 'ancestors.id': 1 });

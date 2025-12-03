@@ -99,7 +99,6 @@ const productSchema = new Schema({
 
 // Indexes
 productSchema.index({ name: 'text', description: 'text' });
-productSchema.index({ sku: 1 });
 productSchema.index({ sellerId: 1 });
 productSchema.index({ categories: 1 });
 productSchema.index({ price: 1 });
