@@ -30,9 +30,9 @@ winston.addColors(colors);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create logs directory if it doesn't exist
+// Create logs directory if it doesn't exist (only when not on Vercel)
 const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
+if (process.env.USE_CONSOLE_LOGGER !== 'true' && !fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
@@ -116,6 +116,18 @@ if (process.env.USE_CONSOLE_LOGGER !== 'true') {
         format: fileFormat,
         maxsize: 5242880, // 5MB
         maxFiles: 5,
+      })
+    ],
+  });
+} else {
+  // Configure only console transport for Vercel
+  logger.configure({
+    level: process.env.LOG_LEVEL || 'debug',
+    levels,
+    transports: [
+      // Console transport with enhanced formatting
+      new winston.transports.Console({
+        format: consoleFormat,
       })
     ],
   });
