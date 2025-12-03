@@ -11,11 +11,14 @@ const connectDB = async () => {
     // Connection options
     const options = {};
     
-    // Add production-specific options
+    // Add production-specific options for better reliability in serverless environments
     if (process.env.NODE_ENV === 'production') {
       options.serverSelectionTimeoutMS = 5000;
       options.socketTimeoutMS = 45000;
       options.maxPoolSize = 10;
+      options.retryWrites = true;
+      options.retryReads = true;
+      options.directConnection = false;
     }
     
     await mongoose.connect(process.env.MONGO_URI, options);
