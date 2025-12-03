@@ -3,13 +3,21 @@
   "outputDirectory": "dist",
   "routes": [
     {
-      "src": "^/assets/(.*)$",
+      "src": "^/assets/.*\\.js$",
       "headers": {
-        "cache-control": "public,max-age=31536000,immutable"
+        "cache-control": "public,max-age=31536000,immutable",
+        "content-type": "application/javascript"
       }
     },
     {
-      "src": "^/(.*)$",
+      "src": "^/assets/.*\\.css$",
+      "headers": {
+        "cache-control": "public,max-age=31536000,immutable",
+        "content-type": "text/css"
+      }
+    },
+    {
+      "src": "^/(?!assets/).*|index.html$",
       "dest": "/index.html"
     }
   ]
