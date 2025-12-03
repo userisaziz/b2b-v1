@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       "@": "/src",
     },
+    dedupe: ['react', 'react-dom']
   },
   build: {
     outDir: 'dist',
