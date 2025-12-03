@@ -55,6 +55,7 @@ const socketCorsOrigins = [
   "http://localhost:3001",
   "https://b2b-v1-seller.vercel.app",
   "https://b2b-v1-admin.vercel.app",
+  "https://b2b-v1-storefront.vercel.app",
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
   process.env.SELLER_URL
