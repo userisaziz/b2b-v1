@@ -17,25 +17,25 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 function App() {
   return (
     <SidebarProvider>
-      <Router basename="/seller">
+      <Router>
         <Routes>
-            <Route element={<AuthLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-        </Route>
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/dashboard/products" element={<ProductsPage />} />
-          <Route path="/dashboard/products/new" element={<AddProductPage />} />
-          <Route path="/dashboard/products/:id" element={<EditProductPage />} />
-          <Route path="/dashboard/categories" element={<CategoriesPage />} />
-          <Route path="/dashboard/categories/request" element={<CategoryRequestPage />} />
-          <Route path="/dashboard/rfqs" element={<RFQsPage />} />
-          <Route path="/dashboard/messages" element={<MessagesPage />} />
-        </Route>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+          </Route>
+          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard/products" element={<ProductsPage />} />
+            <Route path="/dashboard/products/new" element={<AddProductPage />} />
+            <Route path="/dashboard/products/:id" element={<EditProductPage />} />
+            <Route path="/dashboard/categories" element={<CategoriesPage />} />
+            <Route path="/dashboard/categories/request" element={<CategoryRequestPage />} />
+            <Route path="/dashboard/rfqs" element={<RFQsPage />} />
+            <Route path="/dashboard/messages" element={<MessagesPage />} />
+          </Route>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
     </SidebarProvider>
   );
 }

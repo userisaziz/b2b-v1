@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/admin/(.*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
