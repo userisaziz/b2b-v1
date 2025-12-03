@@ -1,24 +1,10 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "^/seller-panel/assets/.*\\.js$",
-      "headers": {
-        "cache-control": "public,max-age=31536000,immutable",
-        "content-type": "application/javascript"
-      }
-    },
-    {
-      "src": "^/seller-panel/assets/.*\\.css$",
-      "headers": {
-        "cache-control": "public,max-age=31536000,immutable",
-        "content-type": "text/css"
-      }
-    },
-    {
-      "src": "^/seller-panel/(?!assets/).*|/seller-panel/index.html$",
-      "dest": "/seller-panel/index.html"
+      "source": "/seller/(.*)",
+      "destination": "/seller/index.html"
     }
   ]
 }

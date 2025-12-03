@@ -1,24 +1,10 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "^/admin-panel/assets/.*\\.js$",
-      "headers": {
-        "cache-control": "public,max-age=31536000,immutable",
-        "content-type": "application/javascript"
-      }
-    },
-    {
-      "src": "^/admin-panel/assets/.*\\.css$",
-      "headers": {
-        "cache-control": "public,max-age=31536000,immutable",
-        "content-type": "text/css"
-      }
-    },
-    {
-      "src": "^/admin-panel/(?!assets/).*|/admin-panel/index.html$",
-      "dest": "/admin-panel/index.html"
+      "source": "/admin/(.*)",
+      "destination": "/admin/index.html"
     }
   ]
 }
