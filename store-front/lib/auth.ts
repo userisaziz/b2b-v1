@@ -12,6 +12,12 @@ export interface RegisterData {
   name: string;
   phone?: string;
   company?: string;
+  businessType?: string;
+  taxNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   role?: 'buyer' | 'seller';
 }
 
@@ -36,10 +42,10 @@ export const login = async (data: LoginData & { role?: string }): Promise<AuthRe
   // Use the unified login endpoint for all user types
   const endpoint = '/auth/login';
   const response = await apiClient.post(endpoint, data);
-  
+
   // Handle the response structure from backend
   const responseData = response.data;
-  
+
   // Map the backend response to our expected structure
   return {
     token: responseData.token,

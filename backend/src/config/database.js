@@ -9,10 +9,7 @@ const connectDB = async () => {
     }
     
     // Connection options
-    const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    };
+    const options = {};
     
     // Add production-specific options
     if (process.env.NODE_ENV === 'production') {

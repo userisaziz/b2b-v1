@@ -6,7 +6,7 @@ import { MessageSquare, Loader2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import apiClient from "@/lib/api";
-import { sendMessage as sendStorefrontMessage } from "@/lib/storefront";
+
 import { useRealtimeMessages } from "@/lib/use-realtime-messages";
 import { usePresence } from "@/lib/use-presence";
 import StorefrontLayout from "@/components/layout/StorefrontLayout";
