@@ -7,12 +7,10 @@
     "build": "next build",
     "build:prod": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "analyze": "ANALYZE=true next build"
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.1.0",
-    "@next/font": "^14.2.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-scroll-area": "^1.2.10",
@@ -36,7 +34,6 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
-    "@next/bundle-analyzer": "^14.2.15",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^20.19.25",
     "@types/react": "^18.0.27",

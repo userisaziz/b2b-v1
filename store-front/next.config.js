@@ -14,8 +14,23 @@ const nextConfig = {
   },
   
   // Production optimizations
-  swcMinify: true,
+  // swcMinify: true, // This option is not valid in Next.js 16+
   compress: true,
+  
+  // Ensure proper MIME types for static assets
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+    ];
+  },
   
   // Environment-specific configurations
   env: {
