@@ -1,10 +1,12 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'https://b2b-v1-backend.vercel.app/api',
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
+   
 });
 
 // Add a request interceptor to include the auth token
