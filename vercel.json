@@ -7,38 +7,46 @@
   "builds": [
     {
       "src": "admin-panel/package.json",
-      "use": "@vercel/node",
+      "use": "@vercel/static-build",
       "config": {
-        "includeFiles": ["admin-panel/**"]
+        "distDir": "admin-panel/dist"
       }
     },
     {
       "src": "seller-panel/package.json",
-      "use": "@vercel/node",
+      "use": "@vercel/static-build",
       "config": {
-        "includeFiles": ["seller-panel/**"]
+        "distDir": "seller-panel/dist"
       }
     },
     {
       "src": "store-front/package.json",
-      "use": "@vercel/node",
+      "use": "@vercel/static-build",
       "config": {
-        "includeFiles": ["store-front/**"]
+        "distDir": "store-front/.next"
       }
+    },
+    {
+      "src": "backend/src/server.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "backend/src/server.js"
+    },
+    {
       "src": "/admin/(.*)",
-      "dest": "admin-panel/$1"
+      "dest": "admin-panel/dist/$1"
     },
     {
       "src": "/seller/(.*)",
-      "dest": "seller-panel/$1"
+      "dest": "seller-panel/dist/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "store-front/$1"
+      "dest": "store-front/.next/$1"
     }
   ]
 }

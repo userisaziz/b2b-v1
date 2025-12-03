@@ -24,6 +24,7 @@ export interface Product {
 // Category interface
 export interface Category {
   _id: string;
+  id: string;
   name: string;
   description: string;
   parent_id: string | null;

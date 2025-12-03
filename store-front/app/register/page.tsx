@@ -55,9 +55,9 @@ export default function RegisterPage() {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
 
-      // Set Supabase session for WebSocket authentication
-      if (response.supabaseSession) {
-        await setSupabaseSession(response.supabaseSession);
+      // Set Supabase session for WebSocket authentication (if available)
+      if ('supabaseSession' in response) {
+        await setSupabaseSession((response as any).supabaseSession);
       }
 
       // Show success message

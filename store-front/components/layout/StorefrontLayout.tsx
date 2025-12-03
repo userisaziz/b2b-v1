@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { User, Menu, X, MessageSquare, FileText, Search, Bell } from "lucide-react";
+import { User, Menu, X, MessageSquare, FileText, Search, Bell, ShoppingCart, ChevronDown } from "lucide-react";
 import { getCurrentUser, logout } from "@/lib/auth";
 import { useUnreadMessageCount } from "@/lib/use-unread-count";
 import { socket } from "@/lib/socket";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface StorefrontLayoutProps {
   children: React.ReactNode;
@@ -14,8 +15,10 @@ interface StorefrontLayoutProps {
 
 export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const user = getCurrentUser();
   const unreadCount = useUnreadMessageCount(user?.id || '', !!user);
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
@@ -23,34 +26,19 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
       socket.emit("join_room", user.id);
 
       socket.on("new_message", (data: any) => {
-        // Ideally we would update a global state or trigger a toast here
-        // For now, the unread count hook should handle polling or we can add real-time increment logic later
         console.log("New message received:", data);
       });
 
-      // Listen for general notifications
       socket.on("notification", (data: any) => {
         console.log("Notification received:", data);
         if (data.type === "success") {
-          toast.success(data.title, {
-            description: data.message,
-            duration: 5000
-          });
+          toast.success(data.title, { description: data.message });
         } else if (data.type === "error") {
-          toast.error(data.title, {
-            description: data.message,
-            duration: 5000
-          });
+          toast.error(data.title, { description: data.message });
         } else if (data.type === "info") {
-          toast.info(data.title, {
-            description: data.message,
-            duration: 5000
-          });
+          toast.info(data.title, { description: data.message });
         } else if (data.type === "warning") {
-          toast.warning(data.title, {
-            description: data.message,
-            duration: 5000
-          });
+          toast.warning(data.title, { description: data.message });
         }
       });
 
@@ -62,15 +50,39 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
     }
   }, [user]);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      {/* Premium Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+      {/* Top Bar (Alibaba style) */}
+      <div className="bg-white border-b border-gray-100 hidden md:block">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-4">
+            <span className="hover:text-blue-600 cursor-pointer">Sourcing Solutions</span>
+            <span className="hover:text-blue-600 cursor-pointer">Services & Membership</span>
+            <span className="hover:text-blue-600 cursor-pointer">Help Center</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hover:text-blue-600 cursor-pointer flex items-center gap-1">
+              English - INR <ChevronDown className="h-3 w-3" />
+            </span>
+            <span className="hover:text-blue-600 cursor-pointer">Get the App</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 gap-8">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+            <div className="flex-shrink-0 flex items-center gap-2">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
                 B
               </div>
               <Link href="/" className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -78,53 +90,91 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/products" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">
-                Products
-              </Link>
-              <Link href="/categories" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">
-                Categories
-              </Link>
-              <Link href="/rfq" className="text-slate-600 hover:text-blue-600 font-medium transition-colors flex items-center gap-1">
-                Post RFQ
-              </Link>
-              <div className="h-6 w-px bg-gray-200 mx-2"></div>
-              <Link href="/become-seller" className="text-slate-900 hover:text-blue-600 font-semibold transition-colors">
-                Become a Seller
-              </Link>
-            </nav>
+            {/* Search Bar (Centered & Prominent) */}
+            <div className="hidden md:flex flex-1 max-w-3xl">
+              <form onSubmit={handleSearch} className="w-full flex">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="What are you looking for..."
+                    className="w-full h-11 pl-4 pr-10 border-2 border-blue-600 rounded-l-full focus:outline-none focus:ring-0 text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  className="h-11 px-8 bg-blue-600 text-white font-semibold rounded-r-full hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Search className="h-5 w-5" />
+                  Search
+                </button>
+              </form>
+            </div>
 
             {/* Right Actions */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-6 flex-shrink-0">
               {user ? (
                 <>
-                  <Link href="/messages" className="relative p-2 text-slate-600 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50">
-                    <MessageSquare className="h-5 w-5" />
+                  <Link href="/messages" className="flex flex-col items-center text-gray-500 hover:text-blue-600 relative group">
+                    <MessageSquare className="h-6 w-6 mb-0.5" />
+                    <span className="text-[10px] font-medium">Messages</span>
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center border-2 border-white">
+                      <span className="absolute -top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center border-2 border-white">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </Link>
-                  <div className="relative group">
-                    <button className="flex items-center gap-2 p-1 pr-3 rounded-full border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all bg-white">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  <Link href="/rfq" className="flex flex-col items-center text-gray-500 hover:text-blue-600 group hidden lg:flex">
+                    <FileText className="h-6 w-6 mb-0.5" />
+                    <span className="text-[10px] font-medium">Orders</span>
+                  </Link>
+                  <Link href="/cart" className="flex flex-col items-center text-gray-500 hover:text-blue-600 group hidden lg:flex">
+                    <ShoppingCart className="h-6 w-6 mb-0.5" />
+                    <span className="text-[10px] font-medium">Cart</span>
+                  </Link>
+
+                  <div className="relative group ml-2">
+                    <button className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-colors">
+                      <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-slate-700 max-w-[100px] truncate">{user.name}</span>
+                      <div className="hidden xl:block text-left">
+                        <p className="text-xs font-medium text-gray-900 max-w-[100px] truncate">{user.name}</p>
+                        <p className="text-[10px] text-gray-500">My Account</p>
+                      </div>
                     </button>
 
                     {/* Dropdown */}
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right z-50">
-                      <Link href="/my-account" className="block px-4 py-2 text-sm text-slate-700 hover:bg-gray-50">
-                        My Account
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top-right z-50">
+                      <div className="px-4 py-3 border-b border-gray-100 mb-2">
+                        <p className="font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                      <Link href="/my-account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                        My Profile
                       </Link>
+                      <Link href="/rfq" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                        My RFQs
+                      </Link>
+                      <Link href="/become-seller" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                        Seller Dashboard
+                      </Link>
+                      <div className="border-t border-gray-100 my-2"></div>
                       <button
                         onClick={logout}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        Logout
+                        Sign Out
                       </button>
                     </div>
                   </div>
@@ -133,15 +183,16 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
                 <div className="flex items-center gap-3">
                   <Link
                     href="/login"
-                    className="px-5 py-2.5 text-slate-700 font-medium hover:text-blue-600 transition-colors"
+                    className="flex flex-col items-center text-gray-500 hover:text-blue-600"
                   >
-                    Log in
+                    <User className="h-6 w-6 mb-0.5" />
+                    <span className="text-[10px] font-medium">Sign In</span>
                   </Link>
                   <Link
                     href="/register"
-                    className="px-5 py-2.5 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 transition-all transform hover:-translate-y-0.5"
+                    className="px-5 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 transition-all transform hover:-translate-y-0.5"
                   >
-                    Sign up
+                    Join Free
                   </Link>
                 </div>
               )}
@@ -159,48 +210,62 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
 
         {/* Mobile Navigation */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white absolute w-full shadow-lg">
-            <div className="px-4 py-4 space-y-3">
-              <Link href="/products" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
-                Products
-              </Link>
-              <Link href="/categories" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
-                Categories
-              </Link>
-              <Link href="/rfq" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
-                Post RFQ
-              </Link>
-              <div className="border-t border-gray-100 my-2"></div>
-              {user ? (
-                <>
-                  <Link href="/messages" className="flex items-center justify-between px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
-                    <span>Messages</span>
-                    {unreadCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                  <Link href="/my-account" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
-                    My Account
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <div className="space-y-2 pt-2">
-                  <Link href="/login" className="block w-full px-4 py-2 text-center text-slate-700 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    Log in
-                  </Link>
-                  <Link href="/register" className="block w-full px-4 py-2 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    Sign up
-                  </Link>
+          <div className="md:hidden border-t border-gray-100 bg-white absolute w-full shadow-lg z-40">
+            <div className="p-4">
+              <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
-              )}
+              </form>
+              <div className="space-y-3">
+                <Link href="/products" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
+                  Products
+                </Link>
+                <Link href="/categories" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
+                  Categories
+                </Link>
+                <Link href="/rfq" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
+                  Post RFQ
+                </Link>
+                <div className="border-t border-gray-100 my-2"></div>
+                {user ? (
+                  <>
+                    <Link href="/messages" className="flex items-center justify-between px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
+                      <span>Messages</span>
+                      {unreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link href="/my-account" className="block px-4 py-2 text-slate-600 hover:bg-gray-50 rounded-lg">
+                      My Account
+                    </Link>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-2 pt-2">
+                    <Link href="/login" className="block w-full px-4 py-2 text-center text-slate-700 border border-gray-200 rounded-lg hover:bg-gray-50">
+                      Log in
+                    </Link>
+                    <Link href="/register" className="block w-full px-4 py-2 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                      Sign up
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -213,7 +278,7 @@ export default function StorefrontLayout({ children }: StorefrontLayoutProps) {
 
       {/* Premium Footer */}
       <footer className="bg-slate-900 text-slate-300 py-16 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-2 mb-6">

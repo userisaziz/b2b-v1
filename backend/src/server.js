@@ -46,16 +46,26 @@ const app = express();
 const server = createServer(app);
 
 // Initialize Socket.IO
+const socketCorsOrigins = [
+  "http://localhost:5174",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://b2b-v1-seller.vercel.app",
+  "https://b2b-v1-admin.vercel.app",
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL,
+  process.env.SELLER_URL
+].filter(Boolean); // Filter out undefined values
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5174",
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3001"
-    ],
-    credentials: true
-  }
+    origin: socketCorsOrigins,
+    credentials: true,
+    methods: ["GET", "POST"]
+  },
+  transports: ["websocket", "polling"],
+  allowEIO3: true
 });
 
 // Store connected users
@@ -207,17 +217,23 @@ function getUserIdBySocketId(socketId) {
 }
 
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: [
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:3001",
-   "https://b2b-v1-seller.vercel.app",
-    "https://b2b-v1-admin.vercel.app"
-  ],
-  credentials: true
-}));
+    "https://b2b-v1-seller.vercel.app",
+    "https://b2b-v1-admin.vercel.app",
+    process.env.CLIENT_URL,
+    process.env.ADMIN_URL,
+    process.env.SELLER_URL
+  ].filter(Boolean), // Filter out undefined values
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // HTTP request logging middleware
 app.use(httpLogger);
@@ -225,6 +241,16 @@ app.use(httpLogger);
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security headers for production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+  });
+}
 
 // Routes with logging
 app.use("/api/auth", (req, res, next) => {
@@ -259,6 +285,21 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    logger.info('Process terminated');
+    process.exit(0);
+  });
+  
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    logger.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+});
+
 // Connect to database and start server
 connectDB().then(() => {
   logger.info('✅ Database connected successfully');
@@ -269,6 +310,12 @@ connectDB().then(() => {
     logger.info(`📡 Socket.IO server is running on port ${PORT}`);
     logger.info(`🌐 CORS enabled for multiple origins`);
     logger.info(`📅 ${new Date().toISOString()}`);
+    
+    if (process.env.NODE_ENV === 'production') {
+      logger.info('🔧 Running in PRODUCTION mode');
+    } else {
+      logger.info('🔧 Running in DEVELOPMENT mode');
+    }
   });
 }).catch((err) => {
   logger.error('❌ Failed to start server due to database connection error:', err);
