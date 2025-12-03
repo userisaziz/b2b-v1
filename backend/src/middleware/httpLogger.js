@@ -1,5 +1,5 @@
 import morgan from 'morgan';
-import logger from '../utils/logger.js';
+import logger from '../utils/consoleLogger.js';
 
 // Custom format for HTTP logging with better readability
 const httpFormat = ':method :url :status :response-time ms - :res[content-length] bytes [:date[clf]]';

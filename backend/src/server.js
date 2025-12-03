@@ -21,7 +21,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 // Import our new logging utilities
-import logger from './utils/logger.js';
+import logger from './utils/consoleLogger.js';
 import httpLogger from './middleware/httpLogger.js';
 
 // Get the directory name
