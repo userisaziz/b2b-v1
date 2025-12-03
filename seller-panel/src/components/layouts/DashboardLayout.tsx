@@ -1,3 +1,5 @@
+"use client";
+
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 
