@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/admin-panel/(.*)",
-      "destination": "/seller/index.html"
+      "destination": "/admin-panel/index.html"
     }
   ]
 }
