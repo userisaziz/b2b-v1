@@ -45,6 +45,60 @@ logger.info("PORT:", process.env.PORT || 5000);
 
 const app = express();
 
+// Apply CORS middleware as early as possible
+app.use(cors(enhancedCorsOptions));
+
+// Add CORS headers manually as a fallback for specific cases
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "http://localhost:5174",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://b2b-v1-seller.vercel.app",
+    "https://b2b-v1-admin.vercel.app",
+    "https://b2b-v1-storefront.vercel.app",
+    process.env.CLIENT_URL,
+    process.env.ADMIN_URL,
+    process.env.SELLER_URL
+  ].filter(o => o !== undefined && o !== null && o !== '');
+  
+  // Allow requests with no origin (like mobile apps or curl requests)
+  if (!origin) {
+    next();
+    return;
+  }
+  
+  // Debug logging
+  logger.info(`CORS Request from origin: ${origin}`);
+  logger.info(`Allowed origins: ${allowedOrigins.join(', ')}`);
+  
+  const isAllowed = allowedOrigins.includes(origin) || 
+    allowedOrigins.some(allowedOrigin => 
+      allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0]));
+  
+  logger.info(`Origin allowed: ${isAllowed}`);
+  
+  if (isAllowed) {
+    res.header("Access-Control-Allow-Origin", origin);
+    logger.info(`Setting CORS header for origin: ${origin}`);
+  }
+  
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    logger.info(`Handling preflight request from origin: ${origin}`);
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
+
 // Create HTTP server
 const server = createServer(app);
 
@@ -220,60 +274,49 @@ function getUserIdBySocketId(socketId) {
   return null;
 }
 
-// CORS configuration
-const corsOptions = {
-  origin: [
-    "http://localhost:5174",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://b2b-v1-seller.vercel.app",
-    "https://b2b-v1-admin.vercel.app",
-    "https://b2b-v1-storefront.vercel.app",
-    process.env.CLIENT_URL,
-    process.env.ADMIN_URL,
-    process.env.SELLER_URL
-  ].filter(origin => origin !== undefined && origin !== null && origin !== ''), // More robust filtering
+// Enhanced CORS configuration that dynamically allows origins
+const enhancedCorsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:5174",
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://b2b-v1-seller.vercel.app",
+      "https://b2b-v1-admin.vercel.app",
+      "https://b2b-v1-storefront.vercel.app",
+      process.env.CLIENT_URL,
+      process.env.ADMIN_URL,
+      process.env.SELLER_URL
+    ].filter(o => o !== undefined && o !== null && o !== '');
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in our allowed list
+    if (allowedOrigins.includes(origin)) {
+      logger.info(`CORS: Allowing origin ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Check if origin matches any of our allowed patterns
+    const isAllowed = allowedOrigins.some(allowedOrigin => 
+      allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0])
+    );
+    
+    if (isAllowed) {
+      logger.info(`CORS: Allowing origin with pattern match ${origin}`);
+      return callback(null, true);
+    }
+    
+    logger.warn(`CORS: Blocking origin ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
 
-// Add CORS headers manually as a fallback
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    "http://localhost:5174",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://b2b-v1-seller.vercel.app",
-    "https://b2b-v1-admin.vercel.app",
-    "https://b2b-v1-storefront.vercel.app",
-    process.env.CLIENT_URL,
-    process.env.ADMIN_URL,
-    process.env.SELLER_URL
-  ].filter(o => o !== undefined && o !== null && o !== '');
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  } else if (origin && allowedOrigins.some(allowedOrigin => 
-    allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0]))) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  
-  next();
-});
 
-app.use(cors(corsOptions));
 
 // HTTP request logging middleware
 app.use(httpLogger);
