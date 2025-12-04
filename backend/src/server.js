@@ -1,7 +1,6 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import connectDB from './config/database.js';
-
+import express from "express";
+import dotenv from "dotenv";
+import connectDB from "./config/database.js";
 import authRoutes from "./routes/auth.routes.js";
 import sellerRoutes from "./routes/seller.routes.js";
 import buyerRoutes from "./routes/buyer.routes.js";
@@ -16,77 +15,70 @@ import messageRoutes from "./routes/message.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
-// Logging
-import logger from './utils/consoleLogger.js';
-import httpLogger from './middleware/httpLogger.js';
+// Import our new logging utilities
+import logger from "./utils/consoleLogger.js";
+import httpLogger from "./middleware/httpLogger.js";
 
-// Directory
+// Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config({ path: path.resolve(__dirname, '../.env') });
-  logger.info(".env loaded");
+// Load environment variables (only in development/local environments)
+if (process.env.NODE_ENV !== "production") {
+  const result = dotenv.config({ path: path.resolve(__dirname, "../.env") });
+  if (result.error) {
+    logger.error("Error loading .env file:", result.error);
+  } else {
+    logger.info(".env file loaded successfully");
+  }
 }
 
-logger.info("PORT:", process.env.PORT);
+logger.info("Environment variables loaded:");
 logger.info("MONGO_URI:", process.env.MONGO_URI ? "****" : "Not set");
+logger.info("PORT:", process.env.PORT || 5000);
 
 const app = express();
 
-/* ============================================================
-   ✅ UNIVERSAL WHITELIST FOR EXPRESS + SOCKET.IO
-   ============================================================ */
+// CORS whitelist
 const whitelist = [
-  "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:3001",
-
-  // MAIN VERCEL DOMAINS
   "https://b2b-v1-seller.vercel.app",
   "https://b2b-v1-admin.vercel.app",
   "https://b2b-v1-storefront.vercel.app",
-
-  // ANY PREVIEW DEPLOYMENTS (VERY IMPORTANT)
-  /\.vercel\.app$/,
-
-  // ENV
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
   process.env.SELLER_URL
-].filter(Boolean);
+].filter(url => url); // Remove falsy values
 
-/* ============================================================
-   ✅ EXPRESS CORS
-   ============================================================ */
+// CORS options
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // mobile / postman
-
-    const allowed =
-      whitelist.includes(origin) ||
-      whitelist.some(wl => wl instanceof RegExp && wl.test(origin));
-
-    if (allowed) {
-      logger.info(`CORS Allowed: ${origin}`);
-      return callback(null, true);
+    // Allow requests with no origin (mobile apps, curl)
+    if (!origin) return callback(null, true);
+    
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`❌ CORS Blocked: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
     }
-
-    logger.warn(`❌ CORS Blocked: ${origin}`);
-    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
+
+// HTTP request logging middleware
 app.use(httpLogger);
 
 // Body parsers
@@ -107,8 +99,8 @@ if (process.env.NODE_ENV === 'production') {
 const server = createServer(app);
 
 /* ============================================================
-   ✅ SOCKET.IO CORS (Same whitelist)
-   ============================================================ */
+  ✅ SOCKET.IO CORS (Same whitelist)
+  ============================================================ */
 const io = new Server(server, {
   cors: {
     origin: whitelist,
@@ -119,8 +111,8 @@ const io = new Server(server, {
 });
 
 /* ============================================================
-   SOCKET.IO EVENTS
-   ============================================================ */
+  SOCKET.IO EVENTS
+  ============================================================ */
 const connectedUsers = new Map();
 const userRooms = new Map();
 
@@ -184,8 +176,8 @@ io.on('connection', (socket) => {
 });
 
 /* ============================================================
-   ROUTES
-   ============================================================ */
+  ROUTES
+  ============================================================ */
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -201,16 +193,16 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/test', testRoutes);
 
 /* ============================================================
-   ERROR HANDLER
-   ============================================================ */
+  ERROR HANDLER
+  ============================================================ */
 app.use((err, req, res, next) => {
   logger.error("Error:", err.message);
   res.status(500).json({ success: false, message: err.message });
 });
 
 /* ============================================================
-   START SERVER
-   ============================================================ */
+  START SERVER
+  ============================================================ */
 connectDB().then(() => {
   const PORT = process.env.PORT || 5000;
   server.listen(PORT, () => {

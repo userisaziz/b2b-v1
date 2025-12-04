@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "/src/server.js"
     }
-  ]
+    
+  ],
+  "env": {
+  "NODE_ENV": "production",
+  "USE_CONSOLE_LOGGER": "true"
+}
+  
 }
