@@ -59,7 +59,7 @@ const socketCorsOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
   process.env.SELLER_URL
-].filter(Boolean); // Filter out undefined values
+].filter(origin => origin !== undefined && origin !== null && origin !== ''); // More robust filtering
 
 const io = new Server(server, {
   cors: {
@@ -232,10 +232,45 @@ const corsOptions = {
     process.env.CLIENT_URL,
     process.env.ADMIN_URL,
     process.env.SELLER_URL
-  ].filter(Boolean), // Filter out undefined values
+  ].filter(origin => origin !== undefined && origin !== null && origin !== ''), // More robust filtering
   credentials: true,
   optionsSuccessStatus: 200
 };
+
+// Add CORS headers manually as a fallback
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "http://localhost:5174",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://b2b-v1-seller.vercel.app",
+    "https://b2b-v1-admin.vercel.app",
+    "https://b2b-v1-storefront.vercel.app",
+    process.env.CLIENT_URL,
+    process.env.ADMIN_URL,
+    process.env.SELLER_URL
+  ].filter(o => o !== undefined && o !== null && o !== '');
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else if (origin && allowedOrigins.some(allowedOrigin => 
+    allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0]))) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
 
 app.use(cors(corsOptions));
 
