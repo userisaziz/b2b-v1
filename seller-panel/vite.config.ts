@@ -15,17 +15,11 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
-            }
-            return 'vendor';
-          }
-        }
+       manualChunks: {
+  'vendor-react': ['react', 'react-dom'],
+  'vendor-radix': ['@radix-ui/react-select', '@radix-ui/react-label']
+}
+  
       }
     }
   }
