@@ -33,6 +33,46 @@ import { Badge } from "@/components/ui/badge";
 import { createProduct } from "@/services/product.service";
 import { getCategories } from "@/services/category.service";
 
+interface Category {
+  _id?: string;
+  id?: string;
+  name: string;
+  children?: Category[];
+  displayName?: string;
+}
+
+interface Attribute {
+  name: string;
+  value: string;
+  unit?: string;
+}
+
+interface Image {
+  url: string;
+  alt: string;
+}
+
+interface FormValues {
+  name: string;
+  slug: string;
+  description: string;
+  brand: string;
+  price: string;
+  currency: string;
+  stock: string;
+  moq: number;
+  hsnCode: string;
+  gstPercent: string;
+  status: string;
+  categories: string[];
+  tags: string[];
+  images: Image[];
+  metaTitle: string;
+  metaDescription: string;
+  sku: string;
+  attributes: Attribute[];
+}
+
 // Professional Multi-Select Component
 function CategoryMultiSelect({ 
   categories, 
@@ -266,7 +306,7 @@ export default function AddProductPage() {
     fetchInitialData();
   }, []);
 
-  const formik = useFormik({
+  const formik = useFormik<FormValues>({
     initialValues: {
       name: "",
       slug: "",
@@ -281,14 +321,14 @@ export default function AddProductPage() {
       status: "draft",
       categories: [] as string[],
       tags: [] as string[],
-      images: [] as { url: string; alt: string }[],
+      images: [] as Image[],
       metaTitle: "",
       metaDescription: "",
       sku: "",
-      attributes: [] as { name: string; value: string; unit?: string }[]
+      attributes: [] as Attribute[]
     },
     validationSchema: productValidationSchema,
-    onSubmit: async (values) => {
+    onSubmit: async (values: FormValues) => {
       setIsLoading(true);
       try {
         const payload = {
@@ -306,14 +346,15 @@ export default function AddProductPage() {
           // Convert categories to the expected format
           categoryIds: values.categories,
           // Format attributes for the backend
-          attributes: values.attributes.map(attr => ({
+          attributes: values.attributes.map((attr: Attribute) => ({
             name: attr.name,
             value: attr.value,
             unit: attr.unit || undefined,
             displayType: 'text',
             isSearchable: true,
             isFilterable: true
-          })).filter(attr => attr.name && attr.value)
+          })).filter((attr: Attribute) => attr.name && attr.value)
+
         };
 
         // Log the payload to see what's being sent
@@ -369,12 +410,12 @@ export default function AddProductPage() {
       if (!formik.values.tags.includes(newTag)) {
         formik.setFieldValue('tags', [...formik.values.tags, newTag]);
       }
-      formik.setFieldValue('tags', []);
+      formik.setFieldValue('tags', ['']);
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    formik.setFieldValue('tags', formik.values.tags.filter(tag => tag !== tagToRemove));
+    formik.setFieldValue('tags', formik.values.tags.filter((tag: string) => tag !== tagToRemove));
   };
 
   const handleAddImage = () => {
@@ -388,7 +429,7 @@ export default function AddProductPage() {
   };
 
   const removeImage = (index: number) => {
-    formik.setFieldValue('images', formik.values.images.filter((_, i) => i !== index));
+    formik.setFieldValue('images', formik.values.images.filter((_: Image, i: number) => i !== index));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,7 +462,7 @@ export default function AddProductPage() {
   };
 
   const removeAttribute = (index: number) => {
-    const newAttributes = formik.values.attributes.filter((_, i) => i !== index);
+    const newAttributes = formik.values.attributes.filter((_: Attribute, i: number) => i !== index);
     formik.setFieldValue('attributes', newAttributes);
   };
 
@@ -690,7 +731,7 @@ export default function AddProductPage() {
                 ))}
                 
                 {/* Preview existing image URLs */}
-                {formik.values.images.map((img, index) => (
+                {formik.values.images.map((img: Image, index: number) => (
                   <div key={`url-${index}`} className="aspect-square rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center relative group overflow-hidden">
                     <img src={img.url} alt={img.alt} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -750,7 +791,7 @@ export default function AddProductPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Attributes List */}
-              {formik.values.attributes.map((attr, index) => (
+              {formik.values.attributes.map((attr: Attribute, index: number) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border border-gray-200 rounded-lg">
                   <div className="md:col-span-4">
                     <Label htmlFor={`attr-name-${index}`}>Name</Label>
@@ -859,7 +900,7 @@ export default function AddProductPage() {
               <div className="space-y-2">
                 <Label>Tags</Label>
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {formik.values.tags.map((tag) => (
+                  {formik.values.tags.map((tag: string) => (
                     <Badge key={tag} variant="secondary" className="gap-1">
                       {tag}
                       <X
