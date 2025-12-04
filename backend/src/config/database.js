@@ -1,7 +1,14 @@
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 
+let isConnected = false; // <-- Add this (GLOBAL)
+
 const connectDB = async () => {
+  if (isConnected) {
+    logger.info("⚡ Using existing MongoDB connection");
+    return;
+  }
+
   try {
     logger.info("Attempting MongoDB connection...");
 
@@ -9,36 +16,33 @@ const connectDB = async () => {
       throw new Error("MONGO_URI environment variable is not defined");
     }
 
-    // Recommended Mongoose options (2025 best practices)
     const options = {
-      autoIndex: process.env.NODE_ENV !== "production", // disable autoIndex in prod
+      autoIndex: process.env.NODE_ENV !== "production",
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      retryWrites: true,
+      retryReads: true,
     };
 
-    // Extra stability options for production
-    if (process.env.NODE_ENV === "production") {
-      options.retryWrites = true;
-      options.retryReads = true;
-      options.directConnection = false;
-    }
+    const conn = await mongoose.connect(process.env.MONGO_URI, options);
 
-    await mongoose.connect(process.env.MONGO_URI, options);
+    isConnected = conn.connections[0].readyState === 1;
 
     logger.info("✅ MongoDB Connected Successfully");
 
-    // Listeners
-    mongoose.connection.on("error", (err) => {
+    mongoose.connection.on("error", err => {
       logger.error("❌ MongoDB connection error:", err);
     });
 
     mongoose.connection.on("disconnected", () => {
+      isConnected = false;
       logger.warn("⚠️ MongoDB disconnected");
     });
 
   } catch (error) {
     logger.error("❌ MongoDB Connection Failed:", error.message || error);
+    throw error;
   }
 };
 
