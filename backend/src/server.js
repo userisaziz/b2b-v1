@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/database.js';
+
 import authRoutes from "./routes/auth.routes.js";
 import sellerRoutes from "./routes/seller.routes.js";
 import buyerRoutes from "./routes/buyer.routes.js";
@@ -21,311 +22,78 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-// Import our new logging utilities
+// Logging
 import logger from './utils/consoleLogger.js';
 import httpLogger from './middleware/httpLogger.js';
 
-// Get the directory name
+// Directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables (only in development/local environments)
+// Load .env
 if (process.env.NODE_ENV !== 'production') {
-  const result = dotenv.config({ path: path.resolve(__dirname, '../.env') });
-  if (result.error) {
-    logger.error('Error loading .env file:', result.error);
-  } else {
-    logger.info('.env file loaded successfully');
-  }
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  logger.info(".env loaded");
 }
 
-logger.info("Environment variables loaded:");
+logger.info("PORT:", process.env.PORT);
 logger.info("MONGO_URI:", process.env.MONGO_URI ? "****" : "Not set");
-logger.info("PORT:", process.env.PORT || 5000);
 
 const app = express();
 
-// Apply CORS middleware as early as possible
-app.use(cors(enhancedCorsOptions));
-
-// Add CORS headers manually as a fallback for specific cases
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    "http://localhost:5174",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://b2b-v1-seller.vercel.app",
-    "https://b2b-v1-admin.vercel.app",
-    "https://b2b-v1-storefront.vercel.app",
-    process.env.CLIENT_URL,
-    process.env.ADMIN_URL,
-    process.env.SELLER_URL
-  ].filter(o => o !== undefined && o !== null && o !== '');
-  
-  // Allow requests with no origin (like mobile apps or curl requests)
-  if (!origin) {
-    next();
-    return;
-  }
-  
-  // Debug logging
-  logger.info(`CORS Request from origin: ${origin}`);
-  logger.info(`Allowed origins: ${allowedOrigins.join(', ')}`);
-  
-  const isAllowed = allowedOrigins.includes(origin) || 
-    allowedOrigins.some(allowedOrigin => 
-      allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0]));
-  
-  logger.info(`Origin allowed: ${isAllowed}`);
-  
-  if (isAllowed) {
-    res.header("Access-Control-Allow-Origin", origin);
-    logger.info(`Setting CORS header for origin: ${origin}`);
-  }
-  
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    logger.info(`Handling preflight request from origin: ${origin}`);
-    res.sendStatus(200);
-    return;
-  }
-  
-  next();
-});
-
-// Create HTTP server
-const server = createServer(app);
-
-// Initialize Socket.IO
-const socketCorsOrigins = [
-  "http://localhost:5174",
+/* ============================================================
+   ✅ UNIVERSAL WHITELIST FOR EXPRESS + SOCKET.IO
+   ============================================================ */
+const whitelist = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:3000",
   "http://localhost:3001",
+
+  // MAIN VERCEL DOMAINS
   "https://b2b-v1-seller.vercel.app",
   "https://b2b-v1-admin.vercel.app",
   "https://b2b-v1-storefront.vercel.app",
+
+  // ANY PREVIEW DEPLOYMENTS (VERY IMPORTANT)
+  /\.vercel\.app$/,
+
+  // ENV
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
   process.env.SELLER_URL
-].filter(origin => origin !== undefined && origin !== null && origin !== ''); // More robust filtering
+].filter(Boolean);
 
-const io = new Server(server, {
-  cors: {
-    origin: socketCorsOrigins,
-    credentials: true,
-    methods: ["GET", "POST"]
-  },
-  transports: ["websocket", "polling"],
-  allowEIO3: true
-});
-
-// Store connected users
-const connectedUsers = new Map();
-const userRooms = new Map(); // Track which rooms users are in
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  logger.info('📱 User connected:', socket.id);
-  
-  // Register user
-  socket.on('register_user', (userId) => {
-    connectedUsers.set(userId, socket.id);
-    logger.info(`👤 User ${userId} registered with socket ${socket.id}`);
-    
-    // Broadcast to all clients that user is online
-    socket.broadcast.emit('user_status_changed', {
-      userId,
-      status: 'online'
-    });
-  });
-  
-  // Join room
-  socket.on('join_room', (roomId) => {
-    socket.join(roomId);
-    logger.info(`🚪 Socket ${socket.id} joined room ${roomId}`);
-    
-    // Track which rooms this user is in
-    const userId = getUserIdBySocketId(socket.id);
-    if (userId) {
-      if (!userRooms.has(userId)) {
-        userRooms.set(userId, new Set());
-      }
-      userRooms.get(userId).add(roomId);
-    }
-  });
-  
-  // Leave room
-  socket.on('leave_room', (roomId) => {
-    socket.leave(roomId);
-    logger.info(`🚪 Socket ${socket.id} left room ${roomId}`);
-    
-    // Remove room from user's tracked rooms
-    const userId = getUserIdBySocketId(socket.id);
-    if (userId && userRooms.has(userId)) {
-      userRooms.get(userId).delete(roomId);
-    }
-  });
-  
-  // Send message
-  socket.on('send_message', (data) => {
-    logger.debug('✉️ Received message:', data);
-    
-    // Emit to recipient if online
-    const recipientSocketId = connectedUsers.get(data.recipient_id);
-    if (recipientSocketId) {
-      socket.to(recipientSocketId).emit('new_message', data);
-      logger.info(`📤 Message forwarded to recipient ${data.recipient_id}`);
-    }
-    
-    // Also emit to the room if applicable
-    if (data.room_id) {
-      socket.to(data.room_id).emit('new_message', data);
-    }
-    
-    // Broadcast to sender that message was delivered
-    socket.emit('message_delivered', {
-      messageId: data.id,
-      timestamp: new Date()
-    });
-  });
-  
-  // Typing indicator
-  socket.on('typing', (data) => {
-    const recipientSocketId = connectedUsers.get(data.recipient_id);
-    if (recipientSocketId) {
-      socket.to(recipientSocketId).emit('user_typing', {
-        sender_id: data.sender_id,
-        is_typing: data.is_typing,
-        conversation_id: data.conversation_id
-      });
-    }
-  });
-  
-  // Read receipt
-  socket.on('mark_as_read', (data) => {
-    const recipientSocketId = connectedUsers.get(data.recipient_id);
-    if (recipientSocketId) {
-      socket.to(recipientSocketId).emit('message_read', {
-        message_id: data.message_id,
-        reader_id: data.reader_id,
-        timestamp: new Date()
-      });
-    }
-  });
-  
-  // Online users request
-  socket.on('request_online_users', () => {
-    const onlineUsers = Array.from(connectedUsers.keys());
-    socket.emit('online_users', onlineUsers);
-  });
-  
-  // User status update
-  socket.on('update_status', (data) => {
-    const userId = getUserIdBySocketId(socket.id);
-    if (userId) {
-      // Broadcast status change to all connected users
-      socket.broadcast.emit('user_status_changed', {
-        userId,
-        status: data.status
-      });
-    }
-  });
-  
-  // Disconnect
-  socket.on('disconnect', () => {
-    logger.info('📴 User disconnected:', socket.id);
-    // Remove user from connected users
-    let userIdToRemove = null;
-    for (let [userId, socketId] of connectedUsers.entries()) {
-      if (socketId === socket.id) {
-        userIdToRemove = userId;
-        connectedUsers.delete(userId);
-        break;
-      }
-    }
-    
-    // Remove user from rooms
-    if (userIdToRemove) {
-      userRooms.delete(userIdToRemove);
-      
-      // Broadcast that user went offline
-      socket.broadcast.emit('user_status_changed', {
-        userId: userIdToRemove,
-        status: 'offline'
-      });
-    }
-  });
-});
-
-// Helper function to get user ID by socket ID
-function getUserIdBySocketId(socketId) {
-  for (let [userId, sid] of connectedUsers.entries()) {
-    if (sid === socketId) {
-      return userId;
-    }
-  }
-  return null;
-}
-
-// Enhanced CORS configuration that dynamically allows origins
-const enhancedCorsOptions = {
+/* ============================================================
+   ✅ EXPRESS CORS
+   ============================================================ */
+const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:5174",
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://b2b-v1-seller.vercel.app",
-      "https://b2b-v1-admin.vercel.app",
-      "https://b2b-v1-storefront.vercel.app",
-      process.env.CLIENT_URL,
-      process.env.ADMIN_URL,
-      process.env.SELLER_URL
-    ].filter(o => o !== undefined && o !== null && o !== '');
-    
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in our allowed list
-    if (allowedOrigins.includes(origin)) {
-      logger.info(`CORS: Allowing origin ${origin}`);
+    if (!origin) return callback(null, true); // mobile / postman
+
+    const allowed =
+      whitelist.includes(origin) ||
+      whitelist.some(wl => wl instanceof RegExp && wl.test(origin));
+
+    if (allowed) {
+      logger.info(`CORS Allowed: ${origin}`);
       return callback(null, true);
     }
-    
-    // Check if origin matches any of our allowed patterns
-    const isAllowed = allowedOrigins.some(allowedOrigin => 
-      allowedOrigin && origin.startsWith(allowedOrigin.replace(/https?:\/\//, '').split('/')[0])
-    );
-    
-    if (isAllowed) {
-      logger.info(`CORS: Allowing origin with pattern match ${origin}`);
-      return callback(null, true);
-    }
-    
-    logger.warn(`CORS: Blocking origin ${origin}`);
-    callback(new Error('Not allowed by CORS'));
+
+    logger.warn(`❌ CORS Blocked: ${origin}`);
+    return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true,
-  optionsSuccessStatus: 200
+  credentials: true
 };
 
-
-
-// HTTP request logging middleware
+app.use(cors(corsOptions));
 app.use(httpLogger);
 
-// Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsers
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Security headers for production
+// Security headers (production only)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -335,75 +103,121 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Routes with logging
-app.use('/api/health', healthRoutes);
+// Server + Socket.io
+const server = createServer(app);
 
-app.use("/api/auth", (req, res, next) => {
-  logger.info(`[ROUTE] /api/auth - ${req.method} request`);
-  next();
-}, authRoutes);
-
-app.use('/api/categories', categoryRoutes)
-app.use('/api/sellers', sellerRoutes)
-app.use('/api/buyers', buyerRoutes)
-app.use('/api/products', productRoutes)
-app.use('/api/approvals', approvalRoutes)
-app.use('/api/admin', adminRoutes)
-app.use('/api/rfqs', rfqRoutes)
-app.use('/api/universal', universalRoutes)
-app.use('/api/category-requests', categoryRequestRoutes)
-app.use('/api/messages', messageRoutes)
-app.use('/api/test', testRoutes)
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  logger.error('🚨 Unhandled error:', err, {
-    url: req.url,
-    method: req.method,
-    headers: req.headers,
-    body: req.body,
-    query: req.query
-  });
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-  });
+/* ============================================================
+   ✅ SOCKET.IO CORS (Same whitelist)
+   ============================================================ */
+const io = new Server(server, {
+  cors: {
+    origin: whitelist,
+    credentials: true,
+    methods: ["GET", "POST"]
+  },
+  transports: ["websocket", "polling"]
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
-  
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    logger.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-});
+/* ============================================================
+   SOCKET.IO EVENTS
+   ============================================================ */
+const connectedUsers = new Map();
+const userRooms = new Map();
 
-// Connect to database and start server
-connectDB().then(() => {
-  logger.info('✅ Database connected successfully');
-  
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => {
-    logger.info(`🚀 Server is running on port ${PORT}`);
-    logger.info(`📡 Socket.IO server is running on port ${PORT}`);
-    logger.info(`🌐 CORS enabled for multiple origins`);
-    logger.info(`📅 ${new Date().toISOString()}`);
-    
-    if (process.env.NODE_ENV === 'production') {
-      logger.info('🔧 Running in PRODUCTION mode');
-    } else {
-      logger.info('🔧 Running in DEVELOPMENT mode');
+io.on('connection', (socket) => {
+  logger.info("🔌 User connected:", socket.id);
+
+  socket.on("register_user", (userId) => {
+    connectedUsers.set(userId, socket.id);
+    socket.broadcast.emit("user_status_changed", { userId, status: "online" });
+  });
+
+  socket.on("join_room", (roomId) => {
+    socket.join(roomId);
+    const userId = [...connectedUsers].find(([id, sid]) => sid === socket.id)?.[0];
+    if (userId) {
+      if (!userRooms.has(userId)) userRooms.set(userId, new Set());
+      userRooms.get(userId).add(roomId);
     }
   });
+
+  socket.on("leave_room", (roomId) => {
+    socket.leave(roomId);
+  });
+
+  socket.on("send_message", (data) => {
+    const recipientSocket = connectedUsers.get(data.recipient_id);
+    if (recipientSocket) {
+      io.to(recipientSocket).emit("new_message", data);
+    }
+    if (data.room_id) io.to(data.room_id).emit("new_message", data);
+    socket.emit("message_delivered", { messageId: data.id, timestamp: new Date() });
+  });
+
+  socket.on("typing", (data) => {
+    const target = connectedUsers.get(data.recipient_id);
+    if (target) io.to(target).emit("user_typing", data);
+  });
+
+  socket.on("mark_as_read", (data) => {
+    const target = connectedUsers.get(data.recipient_id);
+    if (target) io.to(target).emit("message_read", data);
+  });
+
+  socket.on("disconnect", () => {
+    logger.info("❌ Disconnected:", socket.id);
+    let userId = null;
+
+    for (const [id, sid] of connectedUsers.entries()) {
+      if (sid === socket.id) {
+        userId = id;
+        connectedUsers.delete(id);
+        break;
+      }
+    }
+
+    if (userId) {
+      userRooms.delete(userId);
+      socket.broadcast.emit("user_status_changed", { userId, status: "offline" });
+    }
+  });
+});
+
+/* ============================================================
+   ROUTES
+   ============================================================ */
+app.use("/api/health", healthRoutes);
+app.use("/api/auth", authRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/sellers', sellerRoutes);
+app.use('/api/buyers', buyerRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/rfqs', rfqRoutes);
+app.use('/api/universal', universalRoutes);
+app.use('/api/category-requests', categoryRequestRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/test', testRoutes);
+
+/* ============================================================
+   ERROR HANDLER
+   ============================================================ */
+app.use((err, req, res, next) => {
+  logger.error("Error:", err.message);
+  res.status(500).json({ success: false, message: err.message });
+});
+
+/* ============================================================
+   START SERVER
+   ============================================================ */
+connectDB().then(() => {
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    logger.info(`🚀 Server running on ${PORT}`);
+  });
 }).catch((err) => {
-  logger.error('❌ Failed to start server due to database connection error:', err);
+  logger.error("DB error:", err);
   process.exit(1);
 });
 
