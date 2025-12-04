@@ -13,6 +13,7 @@ import universalRoutes from "./routes/universal.routes.js";
 import categoryRequestRoutes from "./routes/categoryRequest.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import testRoutes from "./routes/test.routes.js";
+import healthRoutes from "./routes/health.routes.js";
 
 import cors from 'cors';
 import path from 'path';
@@ -292,6 +293,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Routes with logging
+app.use('/api/health', healthRoutes);
+
 app.use("/api/auth", (req, res, next) => {
   logger.info(`[ROUTE] /api/auth - ${req.method} request`);
   next();
