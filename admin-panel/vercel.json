@@ -6,5 +6,26 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "github": {
+    "enabled": true,
+    "silent": false,
+    "autoJobCancelation": true,
+    "deployHooks": []
+  },
+  "build": {
+    "env": {}
+  },
+  "regions": ["iad1"],
+  "trailingSlash": false,
+  "redirects": [],
+  "headers": [],
+  "cleanUrls": true,
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": true
+    }
+  },
+  "ignoreCommand": "node ../vercel-ignore.js"
 }
