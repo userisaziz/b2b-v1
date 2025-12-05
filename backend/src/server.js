@@ -52,7 +52,7 @@ const whitelist = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://b2b-v1-seller.vercel.app",
-  "https://b2b-v1-admin.vercel.app",
+  "https://b2b-v1-admin-panel.vercel.app",
   "https://b2b-v1-storefront.vercel.app",
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
