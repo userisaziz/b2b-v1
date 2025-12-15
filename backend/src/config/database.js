@@ -30,7 +30,7 @@ const connectDB = async () => {
     isConnected = conn.connections[0].readyState === 1;
 
     logger.info("✅ MongoDB Connected Successfully");
-
+    logger.info("Process env", process.env.MONGO_URI)
     mongoose.connection.on("error", err => {
       logger.error("❌ MongoDB connection error:", err);
     });

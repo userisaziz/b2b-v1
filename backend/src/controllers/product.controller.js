@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 import Category from "../models/category.model.js";
 import Product from "../models/product.model.js";
 import Seller from "../models/seller.model.js";
-import ProductCategoryChangeRequest from "../models/productCategoryChangeRequest.model.js";
 import ProductApprovalRequest from "../models/productApprovalRequest.model.js";
 import upload from "../middleware/multer.js";
 import { uploadMultipleToCloudinary } from "../utils/cloudinary.js";
@@ -538,45 +537,6 @@ export const adminChangeCategories = async (req, res) => {
   }
 };
 
-// ======================================================
-// SELLER REQUEST: CHANGE CATEGORIES
-// ======================================================
-export const requestCategoryChange = async (req, res) => {
-  try {
-    const { newCategoryIds = [] } = req.body;
-
-    const product = await Product.findOne({
-      _id: req.params.id,
-      sellerId: req.user._id
-    });
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found or unauthorized" });
-    }
-
-    // Validate categories exist
-    const categories = await Category.find({ _id: { $in: newCategoryIds } });
-    if (categories.length !== newCategoryIds.length) {
-      return res.status(400).json({ message: "One or more categories are invalid" });
-    }
-
-    const request = await ProductCategoryChangeRequest.create({
-      productId: product._id,
-      sellerId: req.user._id,
-      oldCategoryIds: product.categories,
-      newCategoryIds,
-      status: "pending"
-    });
-
-    res.status(201).json({
-      message: "Category change request submitted",
-      request
-    });
-  } catch (err) {
-    console.error("Request category change error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 // ======================================================
 // ADD PRODUCT IMAGES

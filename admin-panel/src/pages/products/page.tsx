@@ -83,11 +83,20 @@ export default function ProductsPage() {
       try {
         setLoading(true);
         const data = await getProducts();
-        setProducts(data);
-        setFilteredProducts(data);
+        // Ensure data is an array before setting state
+        if (Array.isArray(data)) {
+          setProducts(data);
+          setFilteredProducts(data);
+        } else {
+          console.warn('Received non-array data from getProducts:', data);
+          setProducts([]);
+          setFilteredProducts([]);
+        }
       } catch (err) {
         console.error("Error fetching products:", err);
         setError("Failed to load products");
+        setProducts([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
@@ -98,15 +107,21 @@ export default function ProductsPage() {
 
   // Filter and sort products
   useEffect(() => {
+    // Ensure products is an array before filtering
+    if (!Array.isArray(products)) {
+      setFilteredProducts([]);
+      return;
+    }
+    
     let result = [...products];
     
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(product => 
-        product.name.toLowerCase().includes(query) ||
-        product.sku.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
+        product.name && product.name.toLowerCase().includes(query) ||
+        product.sku && product.sku.toLowerCase().includes(query) ||
+        product.description && product.description.toLowerCase().includes(query) ||
         (product.brand && product.brand.toLowerCase().includes(query))
       );
     }
@@ -114,6 +129,7 @@ export default function ProductsPage() {
     // Apply category filter
     if (categoryFilter !== "all") {
       result = result.filter(product => 
+        product.categories && Array.isArray(product.categories) &&
         product.categories.some(cat => cat.name === categoryFilter)
       );
     }
@@ -150,8 +166,15 @@ export default function ProductsPage() {
 
   // Get unique categories
   const getCategories = () => {
+    // Ensure products is an array before using flatMap
+    if (!Array.isArray(products)) {
+      return ["all"];
+    }
+    
     const allCategories = products.flatMap(product => 
-      product.categories.map(cat => cat.name)
+      product.categories && Array.isArray(product.categories) 
+        ? product.categories.map(cat => cat.name)
+        : []
     );
     return ["all", ...Array.from(new Set(allCategories))];
   };
@@ -172,8 +195,9 @@ export default function ProductsPage() {
   };
 
   const getCategoryNames = (categories: ProductCategory[]) => {
+    // Defensive check for categories
     if (!Array.isArray(categories) || categories.length === 0) return "Uncategorized";
-    return categories.map(cat => cat.name).join(", ");
+    return categories.map(cat => cat.name || "Unknown").join(", ");
   };
 
   const handleDeleteProduct = (productId: string) => {

@@ -62,8 +62,46 @@ export const login = async (data: LoginData & { role?: string }): Promise<AuthRe
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   const role = data.role || 'buyer';
   const endpoint = role === 'seller' ? '/auth/seller/register' : '/auth/buyer/register';
-  const response = await apiClient.post(endpoint, data);
-  return response.data.data;
+  
+  // For buyer registration, we only send the required fields
+  if (role === 'buyer') {
+    const buyerData = {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      phone: data.phone
+    };
+    const response = await apiClient.post(endpoint, buyerData);
+    return {
+      token: response.data.token,
+      user: {
+        id: response.data.data.id,
+        email: response.data.data.email,
+        name: response.data.data.name,
+        role: 'buyer'
+      }
+    };
+  } else {
+    // For seller registration, map form data to expected backend fields
+    const sellerData = {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      phone: data.phone,
+      companyName: data.company,
+      businessType: data.businessType,
+      taxId: data.taxNumber,
+      businessAddress: {
+        street: data.address,
+        city: data.city,
+        region: data.state,
+        postalCode: data.pincode,
+        country: "Saudi Arabia" // Default to Saudi Arabia as per requirements
+      }
+    };
+    const response = await apiClient.post(endpoint, sellerData);
+    return response.data;
+  }
 };
 
 // Get current user

@@ -8,6 +8,9 @@ const router = express.Router();
 // seller register
 router.post("/create", createSeller);
 
+// get authenticated seller profile (must be before :id route to avoid conflict)
+router.get("/profile", protectSeller, getSellerProfile);
+
 // admin approves/rejects seller
 router.route("/:id/approval")
   .patch(protectAdmin, approveSeller)
@@ -16,10 +19,7 @@ router.route("/:id/approval")
 // get all sellers
 router.get("/", getAllSellers);
 
-// get single seller
+// get single seller (must be after profile route)
 router.get("/:id", getSellerById);
-
-// get authenticated seller profile
-router.get("/profile", protectSeller, getSellerProfile);
 
 export default router;

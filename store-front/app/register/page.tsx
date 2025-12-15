@@ -40,6 +40,12 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await register({
@@ -55,7 +61,6 @@ export default function RegisterPage() {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
 
-
       // Show success message
       toast.success('Registration successful!');
       setTimeout(() => {
@@ -63,6 +68,7 @@ export default function RegisterPage() {
       }, 1000);
 
     } catch (err: any) {
+      console.error("Registration error:", err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);

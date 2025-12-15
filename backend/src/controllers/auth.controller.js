@@ -6,6 +6,7 @@ import Seller  from "../models/seller.model.js";
 import { Buyer } from "../models/buyer.model.js";
 import { CompanyEmployee } from "../models/companyEmployee.model.js";
 import { generateToken } from "../middleware/auth.middleware.js";
+import bcrypt from "bcryptjs";
 import {
   logLoginAttempt,
   shouldBlockAttempt,
@@ -323,16 +324,7 @@ export const registerSeller = async (req, res) => {
       });
     }
 
-    // Check if business email already exists
-    const existingBusinessEmail = await Seller.findOne({ businessEmail });
-    if (existingBusinessEmail) {
-      console.log(`[REGISTER] Business email already registered: ${businessEmail}`);
-      return res.status(400).json({
-        success: false,
-        message: "Business email already registered",
-      });
-    }
-
+    // Let the pre-save hook handle password hashing
     const seller = await Seller.create({
       name,
       email,

@@ -2,14 +2,13 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import { Admin } from '../models/admin.model.js';
-import { Seller } from '../models/seller.model.js';
 import { Buyer } from '../models/buyer.model.js';
+import Seller from '../models/seller.model.js';
 import connectDB from '../config/database.js';
+import path from 'path';
 
-dotenv.config();
-
-// Connect to database
-connectDB();
+// Load .env file from project root
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(12);
@@ -18,6 +17,9 @@ const hashPassword = async (password) => {
 
 const seedUsers = async () => {
   try {
+    // Connect to database
+    await connectDB();
+    
     // Clear existing data
     await Admin.deleteMany();
     await Seller.deleteMany();
@@ -29,7 +31,7 @@ const seedUsers = async () => {
         name: 'Super Admin',
         email: 'admin@b2bmarket.com',
         password: await hashPassword('password123'),
-        phone: '+1234567890',
+        phone: '+966501234567',
         adminLevel: 'super_admin',
         permissions: {
           canApproveSeliers: true,
@@ -48,17 +50,17 @@ const seedUsers = async () => {
         name: 'Seller One',
         email: 'seller1@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567891',
+        phone: '+966501234568',
         companyName: 'Tech Solutions Inc.',
         businessEmail: 'info@techsolutions.com',
         businessType: 'manufacturer',
         taxId: 'TAX123456',
         businessAddress: {
           street: '123 Tech Street',
-          city: 'San Francisco',
-          state: 'CA',
-          zipCode: '94102',
-          country: 'USA'
+          city: 'Riyadh',
+          region: 'Riyadh',
+          postalCode: '11564',
+          country: 'Saudi Arabia'
         },
         approvalStatus: 'approved',
         storeName: 'Tech Solutions Store',
@@ -68,17 +70,17 @@ const seedUsers = async () => {
         name: 'Seller Two',
         email: 'seller2@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567892',
+        phone: '+966501234569',
         companyName: 'Global Distributors Ltd.',
         businessEmail: 'contact@globaldistributors.com',
         businessType: 'distributor',
         taxId: 'TAX789012',
         businessAddress: {
           street: '456 Distribution Ave',
-          city: 'New York',
-          state: 'NY',
-          zipCode: '10001',
-          country: 'USA'
+          city: 'Jeddah',
+          region: 'Makkah',
+          postalCode: '21564',
+          country: 'Saudi Arabia'
         },
         approvalStatus: 'approved',
         storeName: 'Global Distribution',
@@ -88,17 +90,17 @@ const seedUsers = async () => {
         name: 'Seller Three',
         email: 'seller3@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567893',
+        phone: '+966501234570',
         companyName: 'Retail Masters',
         businessEmail: 'support@retailmasters.com',
         businessType: 'retailer',
         taxId: 'TAX345678',
         businessAddress: {
           street: '789 Retail Road',
-          city: 'Chicago',
-          state: 'IL',
-          zipCode: '60601',
-          country: 'USA'
+          city: 'Dammam',
+          region: 'Eastern Province',
+          postalCode: '31564',
+          country: 'Saudi Arabia'
         },
         approvalStatus: 'pending',
         storeName: 'Retail Masters Store',
@@ -108,17 +110,17 @@ const seedUsers = async () => {
         name: 'Seller Four',
         email: 'seller4@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567894',
+        phone: '+966501234571',
         companyName: 'Wholesale Experts',
         businessEmail: 'sales@wholesaleexperts.com',
         businessType: 'wholesaler',
         taxId: 'TAX901234',
         businessAddress: {
           street: '101 Wholesale Blvd',
-          city: 'Houston',
-          state: 'TX',
-          zipCode: '77001',
-          country: 'USA'
+          city: 'Medina',
+          region: 'Madinah',
+          postalCode: '41564',
+          country: 'Saudi Arabia'
         },
         approvalStatus: 'approved',
         storeName: 'Wholesale Experts',
@@ -131,19 +133,22 @@ const seedUsers = async () => {
         name: 'Buyer One',
         email: 'buyer1@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567895'
+        phone: '+966501234572',
+        isVerified: true
       },
       {
         name: 'Buyer Two',
         email: 'buyer2@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567896'
+        phone: '+966501234573',
+        isVerified: true
       },
       {
         name: 'Buyer Three',
         email: 'buyer3@example.com',
         password: await hashPassword('password123'),
-        phone: '+1234567897'
+        phone: '+966501234574',
+        isVerified: false
       }
     ];
     

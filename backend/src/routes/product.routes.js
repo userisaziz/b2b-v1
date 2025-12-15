@@ -7,7 +7,7 @@ import {
   getProductById,
   getSellerProducts,
   addProductImages,
-  requestCategoryChange,
+  
   adminChangeCategories,
   trackProductView
 } from "../controllers/product.controller.js";
@@ -22,7 +22,6 @@ router.get("/seller", protectUniversal, protectSeller, getSellerProducts);
 router.put("/:id", protectUniversal, protectSeller, updateProduct);
 router.delete("/:id", protectUniversal, protectSeller, deleteProduct);
 router.post("/:id/images", protectUniversal, protectSeller, upload.array("images", 10), addProductImages);
-router.post("/:id/request-category-change", protectUniversal, protectSeller, requestCategoryChange);
 
 // Public
 router.get("/", getAllProducts);

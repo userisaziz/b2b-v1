@@ -143,11 +143,11 @@ export default function BecomeSellerPage() {
               </p>
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                  RS
+                  MA
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-sm">Rahul Sharma</p>
-                  <p className="text-blue-200 text-xs">CEO, TechExports India</p>
+                  <p className="text-white font-semibold text-sm">Mohammed Al-Saud</p>
+                  <p className="text-blue-200 text-xs">CEO, Riyadh Trading Co.</p>
                 </div>
               </div>
             </div>
@@ -237,15 +237,15 @@ export default function BecomeSellerPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name *</Label>
-                      <Input id="name" name="name" placeholder="John Doe" className="h-11" value={formData.name} onChange={handleChange} />
+                      <Input id="name" name="name" placeholder="Ahmed Al-Saud" className="h-11" value={formData.name} onChange={handleChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address *</Label>
-                      <Input id="email" name="email" type="email" placeholder="name@company.com" className="h-11" value={formData.email} onChange={handleChange} />
+                      <Input id="email" name="email" type="email" placeholder="ahmed@company.sa" className="h-11" value={formData.email} onChange={handleChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number *</Label>
-                      <Input id="phone" name="phone" type="tel" placeholder="+91 98765 43210" className="h-11" value={formData.phone} onChange={handleChange} />
+                      <Input id="phone" name="phone" type="tel" placeholder="+966 50 123 4567" className="h-11" value={formData.phone} onChange={handleChange} />
                     </div>
                   </div>
 
@@ -276,15 +276,15 @@ export default function BecomeSellerPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="company">Company Name *</Label>
-                      <Input id="company" name="company" placeholder="Your Company Pvt Ltd" className="h-11" value={formData.company} onChange={handleChange} />
+                      <Input id="company" name="company" placeholder="Al-Saud Trading Company" className="h-11" value={formData.company} onChange={handleChange} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="businessType">Business Type</Label>
                       <Input id="businessType" name="businessType" placeholder="e.g., Manufacturer, Wholesaler" className="h-11" value={formData.businessType} onChange={handleChange} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="taxNumber">GST / Tax Number (Optional)</Label>
-                      <Input id="taxNumber" name="taxNumber" placeholder="GSTIN1234567890" className="h-11" value={formData.taxNumber} onChange={handleChange} />
+                      <Label htmlFor="taxNumber">VAT Number (Optional)</Label>
+                      <Input id="taxNumber" name="taxNumber" placeholder="300123456700003" className="h-11" value={formData.taxNumber} onChange={handleChange} />
                     </div>
                   </div>
                 </div>
@@ -311,15 +311,15 @@ export default function BecomeSellerPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="city">City</Label>
-                        <Input id="city" name="city" placeholder="Mumbai" className="h-11" value={formData.city} onChange={handleChange} />
+                        <Input id="city" name="city" placeholder="Riyadh" className="h-11" value={formData.city} onChange={handleChange} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" name="state" placeholder="Maharashtra" className="h-11" value={formData.state} onChange={handleChange} />
+                        <Label htmlFor="state">Region</Label>
+                        <Input id="state" name="state" placeholder="Riyadh Region" className="h-11" value={formData.state} onChange={handleChange} />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="pincode">Pincode</Label>
-                        <Input id="pincode" name="pincode" placeholder="400001" className="h-11" value={formData.pincode} onChange={handleChange} />
+                        <Label htmlFor="pincode">Postal Code</Label>
+                        <Input id="pincode" name="pincode" placeholder="11564" className="h-11" value={formData.pincode} onChange={handleChange} />
                       </div>
                     </div>
                   </div>
