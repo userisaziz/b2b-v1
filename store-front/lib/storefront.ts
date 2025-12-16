@@ -78,26 +78,29 @@ export const getProducts = async (params?: {
   
   // Transform products to ensure consistent properties
   let products = response.data.data || response.data;
-  if (Array.isArray(products)) {
-    products = products.map(product => {
-      // Extract seller ID correctly - if sellerId is an object, get its _id, otherwise use as-is
-      let sellerId = product.seller_id || product.sellerId;
-      if (sellerId && typeof sellerId === 'object' && sellerId._id) {
-        sellerId = sellerId._id;
-      }
-      
-      return {
-        ...product,
-        _id: product._id || product.id, // Ensure _id is present
-        id: product.id || product._id, // Ensure id is present
-        seller_id: sellerId,
-        category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
-        min_order_quantity: product.min_order_quantity || 1,
-        sku: product.sku || product.SKU,
-        specifications: product.specifications || {}
-      };
-    });
+  if (!Array.isArray(products)) {
+    // Handle case where products is not an array (could be an object or undefined)
+    products = [];
   }
+
+  products = products.map(product => {
+    // Extract seller ID correctly - if sellerId is an object, get its _id, otherwise use as-is
+    let sellerId = product.seller_id || product.sellerId;
+    if (sellerId && typeof sellerId === 'object' && sellerId._id) {
+      sellerId = sellerId._id;
+    }
+    
+    return {
+      ...product,
+      _id: product._id || product.id, // Ensure _id is present
+      id: product.id || product._id, // Ensure id is present
+      seller_id: sellerId,
+      category_id: product.category_id || (product.category ? product.category.id || product.category._id : undefined),
+      min_order_quantity: product.min_order_quantity || 1,
+      sku: product.sku || product.SKU,
+      specifications: product.specifications || {}
+    };
+  });
   
   return {
     data: products,

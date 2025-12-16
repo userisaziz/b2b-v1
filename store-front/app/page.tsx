@@ -53,10 +53,12 @@ export default function StorefrontHomePage() {
 
         // Load featured products
         const productsData = await getProducts({ limit: 24 });
-        setProducts(productsData.data);
-
+        // Ensure productsData.data is an array before setting state
+        setProducts(Array.isArray(productsData.data) ? productsData.data : []);
       } catch (error) {
         console.error("Error loading data:", error);
+        // Set products to empty array in case of error
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -282,36 +284,51 @@ export default function StorefrontHomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {products.filter(p => p._id && p._id !== 'undefined').map((product) => (
+              {Array.isArray(products) ? products.filter(p => p._id && p._id !== 'undefined').map((product) => (
                 <Link
                   key={product._id}
                   href={`/products/${product._id}`}
                   className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden flex flex-col"
                 >
                   <div className="aspect-square relative bg-gray-100 overflow-hidden">
-                    {product.images && product.images.length > 0 ? (
-                      <img
-                        src={product.images[0]}
+                    {product.images && product.images[0] ? (
+                      <img 
+                        src={product.images[0]} 
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder-product.jpg';
+                        }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <Package className="h-8 w-8" />
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <Package className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    {product.status === 'out_of_stock' && (
+                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                        Out of Stock
                       </div>
                     )}
                   </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                      {product.name}
-                    </h3>
+                  <div className="p-3 flex-grow flex flex-col">
+                    <h3 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</h3>
                     <div className="mt-auto">
-                      <p className="text-lg font-bold text-gray-900">₹{product.price.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500 mt-1">{product.min_order_quantity} MOQ</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {typeof product.price === 'number' ? `SAR ${product.price.toFixed(2)}` : 'Price N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Min. Order: {product.min_order_quantity || 1} pcs
+                      </p>
                     </div>
                   </div>
                 </Link>
-              ))}
+              )) : (
+                <div className="col-span-full text-center py-8 text-gray-500">
+                  No products available
+                </div>
+              )}
             </div>
           )}
         </div>
